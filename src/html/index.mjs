@@ -16,7 +16,7 @@
 import { define as defineResourceProjector } from "@red-cup-engineering/computer-content-engineering-services-section/typed-resource-classification";
 import { evidence as toldEvidence, sidesOf } from "@red-cup-engineering/signcell/cell";
 import { calmReadingOf, readingMark, readingOf } from "@red-cup-engineering/xml-document-rendering-service/svg";
-import { canonical, parse } from "../../../../../json-services-section/src/index.mjs";
+import { canonical, parse } from "@red-cup-engineering/json-services-section";
 import { sha256Bytes } from "@red-cup-engineering/cryptographic-data-service/portable-sha256";
 import { slugify as slugifyText } from "@red-cup-engineering/computer-text-content-engineering-services-section/slugify-text";
 import { decodeHtmlEntities, scanHtmlStartTags } from "./scan.mjs";

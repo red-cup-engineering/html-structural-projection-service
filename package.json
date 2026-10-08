@@ -31,7 +31,8 @@
     "@red-cup-engineering/xml-document-rendering-service": "0.1.6",
     "@red-cup-engineering/signcell": "0.1.0",
     "parse5": "8.0.1",
-    "entities": "8.1.0"
+    "entities": "8.1.0",
+    "@red-cup-engineering/json-services-section": "1.0.0"
   },
   "devDependencies": {}
 }
