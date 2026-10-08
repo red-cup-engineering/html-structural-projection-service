@@ -1,0 +1,37 @@
+{
+  "name": "@red-cup-engineering/html-structural-projection-service",
+  "version": "0.3.0",
+  "private": false,
+  "type": "module",
+  "files": [
+    "package.json",
+    "src"
+  ],
+  "exports": {
+    ".": "./src/html/index.mjs",
+    "./document-nodes": "./src/html/document-nodes.mjs",
+    "./string-rendering": "./src/html/string-rendering.mjs",
+    "./scan": "./src/html/scan.mjs",
+    "./shp-profile": "./src/html/shp-profile.mjs",
+    "./package.json": "./package.json",
+    "./transformations": "./src/html/transformations.mjs",
+    "./lexical": "./src/html/lexical.mjs"
+  },
+  "scripts": {
+    "check": "node --check src/html/*.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@red-cup-engineering/computer-content-engineering-services-section": "0.1.0",
+    "@red-cup-engineering/computer-data-services-section": "0.1.1",
+    "@red-cup-engineering/computer-text-content-engineering-services-section": "0.1.0",
+    "@red-cup-engineering/cryptographic-data-service": "0.1.0",
+    "@red-cup-engineering/css-services-section": "0.1.0",
+    "@red-cup-engineering/html-engineering-services-section": "0.1.0",
+    "@red-cup-engineering/xml-document-rendering-service": "0.1.6",
+    "@red-cup-engineering/signcell": "0.1.0",
+    "parse5": "8.0.1",
+    "entities": "8.1.0"
+  },
+  "devDependencies": {}
+}
