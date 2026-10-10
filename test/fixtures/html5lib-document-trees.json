@@ -1,0 +1,209 @@
+{
+  "source": "https://raw.githubusercontent.com/html5lib/html5lib-tests/a9f44960a9fedf265093d22b2aa3c7ca123727b9/tree-construction/tests1.dat",
+  "revision": "a9f44960a9fedf265093d22b2aa3c7ca123727b9",
+  "scope": "First50 standalone document tree fixtures; fragments and scripting-disabled cases excluded. Not a full current HTML conformance assay.",
+  "sourceSha256": "a7397a4944c2a3c9a70f199a18eaa62233a9f3af0b4ed7b01525f353db487f20",
+  "fixtures": [
+    {
+      "html": "Test",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     \"Test\""
+    },
+    {
+      "html": "<p>One<p>Two",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <p>\n|       \"One\"\n|     <p>\n|       \"Two\""
+    },
+    {
+      "html": "Line1<br>Line2<br>Line3<br>Line4",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     \"Line1\"\n|     <br>\n|     \"Line2\"\n|     <br>\n|     \"Line3\"\n|     <br>\n|     \"Line4\""
+    },
+    {
+      "html": "<html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<head>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<body>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head></head>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head></head><body>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head></head><body></body>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head><body></body></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head></body></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><head><body></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<html><body></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<body></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<head></html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "</head>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "</body>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "</html>",
+      "expected": "| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<b><table><td><i></table>",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <b>\n|       <table>\n|         <tbody>\n|           <tr>\n|             <td>\n|               <i>"
+    },
+    {
+      "html": "<b><table><td></b><i></table>X",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <b>\n|       <table>\n|         <tbody>\n|           <tr>\n|             <td>\n|               <i>\n|       \"X\""
+    },
+    {
+      "html": "<h1>Hello<h2>World",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <h1>\n|       \"Hello\"\n|     <h2>\n|       \"World\""
+    },
+    {
+      "html": "<a><p>X<a>Y</a>Z</p></a>",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <a>\n|     <p>\n|       <a>\n|         \"X\"\n|       <a>\n|         \"Y\"\n|       \"Z\""
+    },
+    {
+      "html": "<b><button>foo</b>bar",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <b>\n|     <button>\n|       <b>\n|         \"foo\"\n|       \"bar\""
+    },
+    {
+      "html": "<!DOCTYPE html><span><button>foo</span>bar",
+      "expected": "| <!DOCTYPE html>\n| <html>\n|   <head>\n|   <body>\n|     <span>\n|       <button>\n|         \"foobar\""
+    },
+    {
+      "html": "<p><b><div><marquee></p></b></div>X",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <p>\n|       <b>\n|     <div>\n|       <b>\n|         <marquee>\n|           <p>\n|           \"X\""
+    },
+    {
+      "html": "<script><div></script></div><title><p></title><p><p>",
+      "expected": "| <html>\n|   <head>\n|     <script>\n|       \"<div>\"\n|     <title>\n|       \"<p>\"\n|   <body>\n|     <p>\n|     <p>"
+    },
+    {
+      "html": "<!--><div>--<!-->",
+      "expected": "| <!--  -->\n| <html>\n|   <head>\n|   <body>\n|     <div>\n|       \"--\"\n|       <!--  -->"
+    },
+    {
+      "html": "<p><hr></p>",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <p>\n|     <hr>\n|     <p>"
+    },
+    {
+      "html": "<select><b><option><select><option></b></select>X",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <select>\n|       <option>\n|     <option>\n|       \"X\""
+    },
+    {
+      "html": "<a><table><td><a><table></table><a></tr><a></table><b>X</b>C<a>Y",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <a>\n|       <a>\n|       <table>\n|         <tbody>\n|           <tr>\n|             <td>\n|               <a>\n|                 <table>\n|               <a>\n|     <a>\n|       <b>\n|         \"X\"\n|       \"C\"\n|     <a>\n|       \"Y\""
+    },
+    {
+      "html": "<a X>0<b>1<a Y>2",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     <a>\n|       x=\"\"\n|       \"0\"\n|       <b>\n|         \"1\"\n|     <b>\n|       <a>\n|         y=\"\"\n|         \"2\""
+    },
+    {
+      "html": "<!-----><font><div>hello<table>excite!<b>me!<th><i>please!</tr><!--X-->",
+      "expected": "| <!-- - -->\n| <html>\n|   <head>\n|   <body>\n|     <font>\n|       <div>\n|         \"helloexcite!\"\n|         <b>\n|           \"me!\"\n|         <table>\n|           <tbody>\n|             <tr>\n|               <th>\n|                 <i>\n|                   \"please!\"\n|             <!-- X -->"
+    },
+    {
+      "html": "<!DOCTYPE html><li>hello<li>world<ul>how<li>do</ul>you</body><!--do-->",
+      "expected": "| <!DOCTYPE html>\n| <html>\n|   <head>\n|   <body>\n|     <li>\n|       \"hello\"\n|     <li>\n|       \"world\"\n|       <ul>\n|         \"how\"\n|         <li>\n|           \"do\"\n|       \"you\"\n|   <!-- do -->"
+    },
+    {
+      "html": "<!DOCTYPE html>A<option>B<optgroup>C<select>D</option>E",
+      "expected": "| <!DOCTYPE html>\n| <html>\n|   <head>\n|   <body>\n|     \"A\"\n|     <option>\n|       \"B\"\n|     <optgroup>\n|       \"C\"\n|       <select>\n|         \"DE\""
+    },
+    {
+      "html": "<",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     \"<\""
+    },
+    {
+      "html": "<#",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     \"<#\""
+    },
+    {
+      "html": "</",
+      "expected": "| <html>\n|   <head>\n|   <body>\n|     \"</\""
+    },
+    {
+      "html": "</#",
+      "expected": "| <!-- # -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<?",
+      "expected": "| <!-- ? -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<?#",
+      "expected": "| <!-- ?# -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<!",
+      "expected": "| <!--  -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<!#",
+      "expected": "| <!-- # -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<?COMMENT?>",
+      "expected": "| <!-- ?COMMENT? -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<!COMMENT>",
+      "expected": "| <!-- COMMENT -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "</ COMMENT >",
+      "expected": "| <!--  COMMENT  -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<?COM--MENT?>",
+      "expected": "| <!-- ?COM--MENT? -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<!COM--MENT>",
+      "expected": "| <!-- COM--MENT -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "</ COM--MENT >",
+      "expected": "| <!--  COM--MENT  -->\n| <html>\n|   <head>\n|   <body>"
+    },
+    {
+      "html": "<!DOCTYPE html><style> EOF",
+      "expected": "| <!DOCTYPE html>\n| <html>\n|   <head>\n|     <style>\n|       \" EOF\"\n|   <body>"
+    }
+  ],
+  "license": "Copyright (c) 2006-2013 James Graham, Geoffrey Sneddon, and\nother contributors\n\nPermission is hereby granted, free of charge, to any person obtaining\na copy of this software and associated documentation files (the\n\"Software\"), to deal in the Software without restriction, including\nwithout limitation the rights to use, copy, modify, merge, publish,\ndistribute, sublicense, and/or sell copies of the Software, and to\npermit persons to whom the Software is furnished to do so, subject to\nthe following conditions:\n\nThe above copyright notice and this permission notice shall be\nincluded in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND\nNONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE\nLIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION\nOF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION\nWITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n"
+}

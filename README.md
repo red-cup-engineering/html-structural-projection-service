@@ -1,0 +1,18 @@
+# HTML structural projection and reading
+
+The root export retains the existing SHP cell/evidence projection, packet commitment and receiving APIs. `./document-nodes` and `./string-rendering` retain their actual string/node construction contracts. Their common `./lexical` helpers retain carriage returns through HTML receiving without changing normal escaped output. HTML NUL display becomes U+FFFD while original typed SHP coordinates/evidence remain in canonical JSON fields; receiving compares the HTML display separately from the exact original values. HTML data attributes are parsed once; Webmention no longer decodes them again. The former five-entity decoder, attribute regex, first-greater-than scanner and duplicate escaping/unescaping implementations are removed.
+
+`./scan` uses native parse5 8.0.1 with source positions. `readHtmlDocument` returns the native parsed document, without executing scripts or fetching. `scanHtmlStartTags` returns frozen explicit-element rows `{name,attrs,index}` in source order, excluding script/style/template bodies. Attribute entities are already decoded using HTML rules, duplicate attributes retain their first value, implied elements have no row, and native tree correction can discard source tags. Indices are zero-based UTF-16 code units in the original input. `decodeHtmlEntities(value,context)` uses native entities 8.1.0 with text(default) or attribute context, including numeric replacement and semicolon rules.
+
+`./transformations` exports six functions:
+
+- `decodeHtmlEntityText({text,context?})`: one-pass reference decoding, not markup parsing.
+- `encodeHtmlEntityText({text})`: ASCII character-reference encoding that roundtrips through text-context decoding. NUL/ill-formed Unicode refuse; CR is retained through references. This does not encode raw JavaScript/CSS or sanitize HTML.
+- `htmlToJsonTree({html})`: parsed ordered document nodes, document mode, doctype IDs, namespaces/attributes, comments/text, source spans and separate inert template fragment content. Implied nodes have null spans; parser recovery differs from lexical source.
+- `htmlParsingDiagnostics({html})`: native parsing error codes with source positions and mode. At most64 diagnostic entries plus the total observed count; not a complete conformance/accessibility/security validator.
+- `htmlDocumentLinks({html,documentUrl?})`: explicit parsed a/area/link hrefs in source order, decoded once, with rel tokens and URL resolution from the first base href and optional absolute HTTP(S) document URL. Unresolved URLs are null; other schemes remain data. No navigation, network fetch or URL safety inference.
+- `htmlBodyText({html})`: body text nodes in DOM order, original spans and their direct concatenation. Head/script/style/template/noscript content is excluded. No CSS visibility/layout or invented paragraph separators.
+
+All operations require well-formed Unicode inputs up to65536 UTF-8 bytes. Document operations cap8192 parsed nodes/attributes and depth64, including implied nodes and template fragments. Results cap1048576 JSON UTF-8 bytes; seller requests separately cap1048576 bytes. Parsing uses scripting-enabled tree rules while never executing scripts. Parsing errors and unresolved URLs are truthful paid information; unsupported request fields and resource/representation limits refuse before payment.
+
+The qualified fixtures retain2231 primary WHATWG named references and50 selected standalone HTML5lib document trees at the supplier's pinned test revision, with source attribution/license. The historical tree subset is not full current HTML conformance. Existing actual SHP/HTML and Webmention authoring consumers were exercised; this does not establish every hosted consumer or a standalone registry release.
