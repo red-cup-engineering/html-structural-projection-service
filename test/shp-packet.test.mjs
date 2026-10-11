@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { sidesOfReading } from "@red-cup-engineering/computer-data-engineering-services-section/four";
 import { evidence } from "@red-cup-engineering/signcell/cell";
-import { canonical } from '../../../../json-services-section/src/index.mjs';
+import { canonical } from '@red-cup-engineering/json-services-section';
 import { address, cellKey, fromCells, fromSection, markup, pack, project, ref, renderPacket, verifyPacket } from '../src/html/index.mjs';
 import { validateShpDocumentBytes } from '../src/html/shp-profile.mjs';
 
