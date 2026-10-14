@@ -372,9 +372,9 @@ export function markup(html) {
         const evidence = parse(attrs["data-evidence"] ?? "null");
         if (!Array.isArray(evidence) || evidence.length !== 2 || !evidence.every(Array.isArray))
             throw new TypeError("markup: invalid evidence pair");
-        const e = toldEvidence({ for: evidence[0], against: evidence[1] });
-        if (readingOf(e) !== name)
-            throw new TypeError("markup: evidence disagrees with its reading");
+        // A settled value may differ from witness presence after a bilattice
+        // operation. Retain both the supplied value and every witness.
+        const e = toldEvidence({ for: evidence[0], against: evidence[1], value: name });
         cells.push({ cell, evidence: e });
     }
     return cells;
