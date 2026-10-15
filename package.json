@@ -1,6 +1,6 @@
 {
   "name": "@red-cup-engineering/html-structural-projection-service",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "type": "module",
   "files": [
@@ -22,17 +22,17 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@red-cup-engineering/computer-content-engineering-services-section": "workspace:*",
-    "@red-cup-engineering/computer-data-engineering-services-section": "workspace:*",
-    "@red-cup-engineering/computer-text-content-engineering-services-section": "workspace:*",
-    "@red-cup-engineering/cryptographic-computer-data-engineering-services-section": "workspace:*",
-    "@red-cup-engineering/css-services-section": "workspace:*",
-    "@red-cup-engineering/html-engineering-services-section": "workspace:*",
-    "@red-cup-engineering/xml-document-rendering-service": "workspace:*",
-    "@red-cup-engineering/signcell": "workspace:*",
     "parse5": "8.0.1",
     "entities": "8.1.0",
-    "@red-cup-engineering/json-services-section": "workspace:*"
+    "@red-cup-engineering/computer-content-engineering-services-section": "0.1.0",
+    "@red-cup-engineering/computer-data-engineering-services-section": "0.2.0",
+    "@red-cup-engineering/computer-text-content-engineering-services-section": "0.1.0",
+    "@red-cup-engineering/cryptographic-computer-data-engineering-services-section": "0.3.1",
+    "@red-cup-engineering/css-services-section": "0.1.1",
+    "@red-cup-engineering/html-engineering-services-section": "0.1.1",
+    "@red-cup-engineering/xml-document-rendering-service": "0.1.7",
+    "@red-cup-engineering/signcell": "0.1.0",
+    "@red-cup-engineering/json-services-section": "0.4.0"
   },
   "devDependencies": {}
 }
