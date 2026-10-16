@@ -4,10 +4,30 @@ import test from 'node:test';
 import { sidesOfReading } from "@red-cup-engineering/computer-data-engineering-services-section/four";
 import { evidence } from "@red-cup-engineering/signcell/cell";
 import { canonical } from '@red-cup-engineering/json-services-section';
-import { address, cellKey, fromCells, fromSection, markup, pack, project, ref, renderPacket, verifyPacket } from '../src/html/index.mjs';
+import { address, cellKey, fromCells, fromSection, markup, morphismRegistry, pack, project, ref, renderPacket, verifyPacket } from '../src/html/index.mjs';
 import { validateShpDocumentBytes } from '../src/html/shp-profile.mjs';
 
 const form = () => fromSection({ affirmed: [{ predicate: 'depends-on', object: ref('object:2'), citation: { feed: 'source:1', row: 8 } }] }, { subject: 'object:1' });
+
+
+test('SHP morphisms preserve canonical typed predicate identity without scalar/record collisions', () => {
+  const record = { kind: 'predicate', labels: { b: 2, a: 1 } };
+  const reordered = { labels: { a: 1, b: 2 }, kind: 'predicate' };
+  const asText = JSON.stringify(record);
+  const registry = morphismRegistry([
+    { className: 'typedPredicate', predicate: record },
+    { className: 'textPredicate', predicate: asText },
+  ]);
+  assert.equal(registry.className(record), 'typedPredicate');
+  assert.equal(registry.className(reordered), 'typedPredicate');
+  assert.equal(registry.className(asText), 'textPredicate');
+  assert.deepEqual(registry.predicate('typedPredicate'), record);
+  assert.equal(registry.predicate('textPredicate'), asText);
+  const cells = [{ cell: { subject: 's', predicate: reordered, object: 'v' }, evidence: evidence({ for: ['w'] }) }];
+  const html = project(fromCells('packet', cells), registry);
+  assert.match(html, /<span class="typedPredicate"/);
+  assert.deepEqual(markup(html)[0].cell.predicate, reordered);
+});
 
 test('typed coordinates and both witness sides round-trip in calm and audit modes', () => {
   const values = [null, '', 0, 1.25, false, true, ['x', 2], { z: 3, a: '&<"' }, 'shp-ref:literal', ref('object:3'), { const: 4 }];

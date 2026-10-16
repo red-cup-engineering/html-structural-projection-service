@@ -131,7 +131,7 @@ function witnesses(value) {
 function spanId(span) {
     return `${span.tier}@${span.start}-${span.end}`;
 }
-const keyOf = (predicate) => typeof predicate === "string" ? predicate : JSON.stringify(predicate ?? null);
+const keyOf = (predicate) => canonical(predicate ?? null);
 const HTML_STRUCTURAL_CLASS = /^[A-Za-z][A-Za-z0-9_-]*$/u;
 /** The default registry: class = slug(predicate); inverse returns the class. */
 export function defaultMorphisms() {
