@@ -151,7 +151,11 @@ export function morphismRegistry(morphisms) {
         if (byClass.has(m.className)) {
             throw new TypeError(`morphismRegistry: duplicate structural class ${JSON.stringify(m.className)}`);
         }
-        byPredicate.set(keyOf(m.predicate), m.className);
+        const predicateKey = keyOf(m.predicate);
+        if (byPredicate.has(predicateKey)) {
+            throw new TypeError("morphismRegistry: duplicate canonical predicate identity");
+        }
+        byPredicate.set(predicateKey, m.className);
         byClass.set(m.className, m.predicate);
     }
     return {

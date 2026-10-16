@@ -10,6 +10,33 @@ import { validateShpDocumentBytes } from '../src/html/shp-profile.mjs';
 const form = () => fromSection({ affirmed: [{ predicate: 'depends-on', object: ref('object:2'), citation: { feed: 'source:1', row: 8 } }] }, { subject: 'object:1' });
 
 
+
+test('SHP morphisms refuse ambiguous canonical predicate mappings', () => {
+  const original = { predicate: 'reuses', scope: { a: 1, b: 2 } };
+  const reordered = { scope: { b: 2, a: 1 }, predicate: 'reuses' };
+  assert.throws(
+    () => morphismRegistry([
+      { className: 'firstClass', predicate: original },
+      { className: 'secondClass', predicate: reordered },
+    ]),
+    /duplicate canonical predicate identity/,
+  );
+  assert.throws(
+    () => morphismRegistry([
+      { className: 'firstClass', predicate: 'exact' },
+      { className: 'secondClass', predicate: 'exact' },
+    ]),
+    /duplicate canonical predicate identity/,
+  );
+  assert.throws(
+    () => morphismRegistry([
+      { className: 'sameClass', predicate: original },
+      { className: 'sameClass', predicate: 'distinct' },
+    ]),
+    /duplicate structural class/,
+  );
+});
+
 test('SHP morphisms preserve canonical typed predicate identity without scalar/record collisions', () => {
   const record = { kind: 'predicate', labels: { b: 2, a: 1 } };
   const reordered = { labels: { a: 1, b: 2 }, kind: 'predicate' };
