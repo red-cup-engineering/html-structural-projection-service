@@ -3,8 +3,7 @@
   "version": "0.3.3",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/red-cup-engineering/computer-serialized-content-engineering-services-section.git",
-    "directory": "services/html-engineering-services-section/services/html-structural-projection-service"
+    "url": "git+https://github.com/red-cup-engineering/html-structural-projection-service.git"
   },
   "private": false,
   "type": "module",
