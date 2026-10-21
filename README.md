@@ -1,5 +1,12 @@
 # HTML structural projection and reading
 
+<!-- 561-group-standards:badges:start -->
+[![Red Cup Engineering](https://img.shields.io/badge/561%20Group-Red%20Cup%20Engineering-c0392b)](https://github.com/red-cup-engineering)
+[![License: MIT](https://img.shields.io/badge/license-MIT-c0392b)](LICENSE)
+[![Indigenous data: CARE](https://img.shields.io/badge/Indigenous%20data-CARE-4b6f44)](https://github.com/red-cup-engineering/.github/blob/main/GOVERNANCE.md)
+[![Tips welcome](https://img.shields.io/badge/tips-welcome-d4a017)](https://github.com/561-group/.github/blob/main/TIPS.md)
+<!-- 561-group-standards:badges:end -->
+
 The root export retains the existing SHP cell/evidence projection, packet commitment and receiving APIs. `./document-nodes` and `./string-rendering` retain their actual string/node construction contracts. Their common `./lexical` helpers retain carriage returns through HTML receiving without changing normal escaped output. HTML NUL display becomes U+FFFD while original typed SHP coordinates/evidence remain in canonical JSON fields; receiving compares the HTML display separately from the exact original values. HTML data attributes are parsed once; Webmention no longer decodes them again. The former five-entity decoder, attribute regex, first-greater-than scanner and duplicate escaping/unescaping implementations are removed.
 
 `./scan` uses native parse5 8.0.1 with source positions. `readHtmlDocument` returns the native parsed document, without executing scripts or fetching. `scanHtmlStartTags` returns frozen explicit-element rows `{name,attrs,index}` in source order, excluding script/style/template bodies. Attribute entities are already decoded using HTML rules, duplicate attributes retain their first value, implied elements have no row, and native tree correction can discard source tags. Indices are zero-based UTF-16 code units in the original input. `decodeHtmlEntities(value,context)` uses native entities 8.1.0 with text(default) or attribute context, including numeric replacement and semicolon rules.
