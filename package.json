@@ -34,8 +34,8 @@
     "@red-cup-engineering/cryptographic-computer-data-engineering-services-section": "0.3.1",
     "@red-cup-engineering/xml-document-rendering-service": "0.1.7",
     "@red-cup-engineering/signcell": "0.2.0",
-    "@red-cup-engineering/json-services-section": "0.4.0",
-    "@red-cup-engineering/css-services-section": "0.1.3",
+    "@red-cup-engineering/json-engineering-services-section": "0.4.0",
+    "@red-cup-engineering/css-engineering-services-section": "0.1.3",
     "@red-cup-engineering/html-engineering-services-section": "0.1.3"
   },
   "devDependencies": {
