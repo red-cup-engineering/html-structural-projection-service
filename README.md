@@ -7,6 +7,21 @@
 [![Tips welcome](https://img.shields.io/badge/tips-welcome-d4a017)](https://github.com/561-group/.github/blob/main/TIPS.md)
 <!-- 561-group-standards:badges:end -->
 
+The generic SHP packet boundary follows the existing
+[canonical SHP source-language contract](https://github.com/red-cup-engineering/semiotic-hypertext-packet/pull/4):
+a source may declare one canonical BCP 47 document language, or leave it unknown.
+`project` and `pack` no longer invent `lang="en"` for an unqualified source;
+an explicitly authored `dataform.language` may not be replaced by a conflicting
+renderer option. `verifyPacket` accepts a genuinely unlabelled root or a
+canonical authored tag and retains its original HTML safety checks. The
+specific RFC 7992 **English-only RFC document** inhabitant declaration is
+unchanged; it is not a universal SHP language rule. The old HTML structural
+packet codec and the newer canonical SHP package have distinct
+cell/charge/packet contracts: this does **not** claim drop-in compatibility,
+npm release, translation, accessibility conformance, or authorization to
+render private content. Original bytes determine packet identity; consumers
+must select a verified released package and requalify their original source.
+
 The root export retains the existing SHP cell/evidence projection, packet commitment and receiving APIs. `./document-nodes` and `./string-rendering` retain their actual string/node construction contracts. Their common `./lexical` helpers retain carriage returns through HTML receiving without changing normal escaped output. HTML NUL display becomes U+FFFD while original typed SHP coordinates/evidence remain in canonical JSON fields; receiving compares the HTML display separately from the exact original values. HTML data attributes are parsed once; Webmention no longer decodes them again. The former five-entity decoder, attribute regex, first-greater-than scanner and duplicate escaping/unescaping implementations are removed.
 
 `./scan` uses native parse5 8.0.1 with source positions. `readHtmlDocument` returns the native parsed document, without executing scripts or fetching. `scanHtmlStartTags` returns frozen explicit-element rows `{name,attrs,index}` in source order, excluding script/style/template bodies. Attribute entities are already decoded using HTML rules, duplicate attributes retain their first value, implied elements have no row, and native tree correction can discard source tags. Indices are zero-based UTF-16 code units in the original input. `decodeHtmlEntities(value,context)` uses native entities 8.1.0 with text(default) or attribute context, including numeric replacement and semicolon rules.
