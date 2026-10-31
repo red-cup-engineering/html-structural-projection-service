@@ -141,6 +141,16 @@ test('source language refuses conflict, noncanonical tags, forged roots and unsa
     assert.throws(() => project(form(), undefined, {language}), /canonical BCP 47/u);
   }
   const accepted = project(form());
+  assert.deepEqual(validateShpDocumentBytes(accepted), [],
+    'one genuine source-authored HTML root remains valid');
+  // Parse5's corrected DOM must not hide additional explicit source tokens.
+  // The HTML tree builder merges the second root's language into the first
+  // DOM element: count the actual start tags rather than constructed nodes.
+  for (const duplicate of ['<html lang="ar">', '<HTML lang="lkt">']) {
+    const forged = accepted.replace('<body>', '<body>\n' + duplicate);
+    assert.ok(validateShpDocumentBytes(forged).some(({ code }) => code === 'SHP-DOC-003'),
+      'a second explicit HTML root must be refused, not normalized: ' + duplicate);
+  }
   // The root language must come from the explicit parsed HTML root, not
   // a comment, nested element or script text.
   assert.deepEqual(validateShpDocumentBytes(
