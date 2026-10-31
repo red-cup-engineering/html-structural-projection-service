@@ -104,6 +104,62 @@ test('packet commits all fields with shared RFC 8785 and SHA-256 and freezes its
   }
 });
 
+test('source language or unknown survives the original packet writer and strict receiver', () => {
+  // The canonical SHP owner already admits source-authored BCP 47 tags;
+  // generic HTML Structural Projection must not reintroduce RFC 7992 English.
+  const unknown = project(form());
+  assert.match(unknown, /^<!DOCTYPE html>\n<html>\n/u);
+  assert.doesNotMatch(unknown, /<html[^>]*lang=/u);
+  assert.deepEqual(validateShpDocumentBytes(unknown), []);
+  const unknownPacket = pack(form(), { source: 'source:unknown' });
+  assert.equal(verifyPacket(unknownPacket), true);
+  assert.match(unknownPacket.html, /<html>/u);
+  assert.deepEqual(markup(unknownPacket.html), form().cells);
+  for (const language of ['lkt', 'ar', 'fr-CA', 'zh-Hant', 'und', 'en']) {
+    const fromSource = fromCells('object:1', form().cells, { language });
+    const before = structuredClone(fromSource);
+    const html = project(fromSource);
+    assert.match(html, new RegExp('<html lang="' + language + '">', 'u'));
+    assert.deepEqual(validateShpDocumentBytes(html), [], 'safe source-declared ' + language);
+    const packet = pack(fromSource, { source: 'source:real:' + language });
+    assert.equal(verifyPacket(packet), true);
+    assert.deepEqual(markup(packet.html), fromSource.cells);
+    assert.deepEqual(fromSource, before, 'projection may not alter original language testimony');
+    assert.equal(packet.html.includes('lang="' + language + '"'), true);
+  }
+  assert.notEqual(pack(form(), {source:'source:1'}).identity,
+    pack(form(), {source:'source:1', language:'lkt'}).identity,
+    'original language choice changes immutable packet bytes and committed identity');
+});
+
+test('source language refuses conflict, noncanonical tags, forged roots and unsafe HTML', () => {
+  const original = fromCells('object:1', form().cells, {language:'ar'});
+  assert.throws(() => project(original, undefined, {language:'en'}), /conflicts with source-declared language/u);
+  assert.doesNotThrow(() => project(original, undefined, {language:'ar'}));
+  for (const language of ['en-us','AR','fr_CA','en--US','en ','','x-test','en<script','zh-hans']) {
+    assert.throws(() => fromCells('object:1', form().cells, {language}), /canonical BCP 47/u);
+    assert.throws(() => project(form(), undefined, {language}), /canonical BCP 47/u);
+  }
+  const accepted = project(form());
+  // The root language must come from the explicit parsed HTML root, not
+  // a comment, nested element or script text.
+  assert.deepEqual(validateShpDocumentBytes(
+    accepted.replace('<head>', '<head><!-- <html lang="en"> --><meta name="fake" lang="fr">')), []);
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('<html>', '<html lang="en-us">')
+  ).some(violation=>violation.code==='SHP-DOC-003'));
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('<html>', '<html lang="">')
+  ).some(violation=>violation.code==='SHP-DOC-003'));
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('</body>', '<script>alert(1)</script></body>')
+  ).some(violation=>violation.code==='SHP-DOC-005'),
+  'the source-language repair must not relax SHP inspection safety');
+  const historical = accepted.replace('<html>', '<html lang="en">');
+  assert.deepEqual(validateShpDocumentBytes(historical), [],
+    'previous generic SHP packets with explicit English remain readable');
+});
+
 test('a receiving document renderer wraps the exact article and remains within inspection safety', () => {
   const packet = pack(form(), {
     source: 'source:1',
