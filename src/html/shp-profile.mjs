@@ -5,6 +5,18 @@ const STRUCTURAL_CLASS = /^[A-Za-z][A-Za-z0-9_-]*$/u;
 const REQUIRED_RFC7992_CLASSES = ["bcp14", "xref", "eref", "relref", "selfRef", "artwork", "sourcecode"];
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const nonEmpty = (value) => typeof value === "string" && value.length > 0;
+/** Source-claimed language, not the viewer's locale, an inferred translation
+ * or English by default. The canonical SHP source owner admits the same
+ * Intl-recognized canonical BCP 47 subset. */
+export function canonicalShpLanguage(value) {
+    if (typeof value !== "string" || !value || value.length > 128 || value.trim() !== value)
+        throw new TypeError("shp: language must be a canonical BCP 47 tag");
+    let canonical;
+    try { [canonical] = Intl.getCanonicalLocales(value); }
+    catch { throw new TypeError("shp: language must be a canonical BCP 47 tag"); }
+    if (canonical !== value) throw new TypeError("shp: language must be a canonical BCP 47 tag");
+    return value;
+}
 const strings = (value) => Array.isArray(value) && value.length > 0 && value.every(nonEmpty) && new Set(value).size === value.length
     ? value
     : null;
@@ -135,7 +147,8 @@ export function assertValidShpProfile(value) {
     if (violations.length > 0)
         throw new TypeError(violations.map(({ code, path, message }) => `${code} ${path}: ${message}`).join("\n"));
 }
-/** Validate byte-level invariants required by the declarative RFC 7992 inhabitant. */
+/** Generic SHP inspection safety. English-only RFC 7992 is a separate
+ * specific inhabitant declaration; it cannot govern all SHP packets. */
 export function validateShpDocumentBytes(value) {
     if (typeof value !== "string" || value.length === 0)
         return [Object.freeze({ code: "SHP-DOC-001", path: "<document>", message: "document bytes must be a non-empty string" })];
@@ -143,8 +156,16 @@ export function validateShpDocumentBytes(value) {
     const fail = (code, message) => { violations.push(Object.freeze({ code, path: "<document>", message })); };
     if (!/^<!doctype html>/i.test(value))
         fail("SHP-DOC-002", "document must start with an HTML doctype");
-    if (!/<html\b[^>]*\blang="en"/i.test(value))
-        fail("SHP-DOC-003", "root html element must declare lang=en");
+    // Read the real root through the same native parser as the safety scan.
+    // Child, comment and template language claims cannot replace root testimony.
+    const tags = scanHtmlStartTags(value);
+    const roots = tags.filter(({ name }) => name === "html");
+    if (roots.length !== 1) {
+        fail("SHP-DOC-003", "packet must carry one explicit HTML root");
+    } else if (roots[0].attrs.lang !== undefined) {
+        try { canonicalShpLanguage(roots[0].attrs.lang); }
+        catch { fail("SHP-DOC-003", "source-declared root language must be a canonical BCP 47 tag"); }
+    }
     if (!/<meta\b[^>]*\bcharset="utf-8"/i.test(value))
         fail("SHP-DOC-004", "document must declare utf-8 charset");
     if (/<script\b/i.test(value))
@@ -157,7 +178,7 @@ export function validateShpDocumentBytes(value) {
         fail("SHP-DOC-008", "document must carry data-* coordinates");
     if (/\r/.test(value))
         fail("SHP-DOC-009", "document must use LF line endings");
-    for (const { name, attrs } of scanHtmlStartTags(value)) {
+    for (const { name, attrs } of tags) {
         if (Object.keys(attrs).some((key) => /^on/i.test(key)))
             fail("SHP-DOC-010", "inspection must not execute event handlers");
         if (["iframe", "object", "embed", "base"].includes(name) || attrs.srcdoc !== undefined || (name === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh"))
