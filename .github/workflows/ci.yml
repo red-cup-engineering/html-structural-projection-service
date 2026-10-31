@@ -1,0 +1,37 @@
+name: HTML Structural Projection · native receiving
+
+# This public original source owns its tests, not a separate CI apparatus.
+# The complete source check delegates to the Group's single CD engine at an
+# exact commit; public ubuntu-24.04 uses no private Actions runner quota.
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".npmrc"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    uses: red-cup-engineering/continuous-delivery-engineering-services-section/.github/workflows/node-package.yml@df4eb6463c2c9c52a30b431aa7cb03923cb16144
+    with:
+      runs-on: '["ubuntu-24.04"]'
+      node-version: "24.11.1"
+      package-manager: pnpm
+      pnpm-version: "10.19.0"
+      supplier-ref: "df4eb6463c2c9c52a30b431aa7cb03923cb16144"
+      source-commit: ${{ github.event.pull_request.head.sha || github.sha }}
+      paths: '["."]'
+      concurrency: 1
+      timeout-minutes: 25
+      install: true
+      check: true
+      test-script: test
