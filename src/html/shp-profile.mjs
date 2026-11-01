@@ -238,10 +238,13 @@ export function validateShpDocumentBytes(value) {
         fail("SHP-DOC-008", "document must carry data-* coordinates");
     if (/\r/.test(value))
         fail("SHP-DOC-009", "document must use LF line endings");
-    for (const { name, attrs } of tags) {
+    // The DOM-only structural walk skips template contents. Enforce the
+    // security boundary on parser-witnessed source tokens instead, including
+    // inert template fragments that a consumer could later instantiate.
+    for (const { name, attributes: attrs } of authoredStartTags) {
         if (Object.keys(attrs).some((key) => /^on/i.test(key)))
             fail("SHP-DOC-010", "inspection must not execute event handlers");
-        if (["iframe", "object", "embed", "base"].includes(name) || attrs.srcdoc !== undefined || (name === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh"))
+        if (["iframe", "object", "embed", "base"].includes(name) || attrs.srcdoc !== undefined || (name === "meta" && attrs["http-equiv"]?.trim().toLowerCase() === "refresh"))
             fail("SHP-DOC-011", "inspection must not activate embedded documents or redirects");
         for (const key of ["href", "src", "action", "formaction", "xlink:href"]) {
             const target = attrs[key]?.replace(/[\u0000-\u0020\u007f]/gu, "");
