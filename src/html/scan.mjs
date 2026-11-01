@@ -20,7 +20,18 @@ export function readHtmlDocument(html,{maximumNodes=Infinity,maximumDepth=Infini
  }else{
   const parser=new Parser({sourceCodeLocationInfo:true,scriptingEnabled:true,treeAdapter,onParseError});
   const original=parser.onStartTag.bind(parser);
-  parser.onStartTag=token=>{onSourceStartTag(token);return original(token);};
+  parser.onStartTag=token=>{
+   // The original tokenizer object remains exclusively owned by parse5.
+   // A receiving callback gets an immutable, detached source observation:
+   // it cannot change the token before tree insertion or update its attrs.
+   const observation=Object.freeze({
+    tagName:token.tagName,
+    location:token.location ? Object.freeze({startOffset:token.location.startOffset}) : null,
+    attrs:Object.freeze(token.attrs.map(({name,value})=>Object.freeze({name,value}))),
+   });
+   onSourceStartTag(observation);
+   return original(token);
+  };
   parser.tokenizer.write(html,true);
   document=parser.document;
  }
