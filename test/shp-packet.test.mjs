@@ -305,3 +305,36 @@ test('SHP inspection refuses authored responsive image-source candidates, includ
   assert.deepEqual(validateShpDocumentBytes(inert), [],
     'a commented srcset is inert, not an authored resource candidate');
 });
+
+test('SHP inspection refuses external media and SVG resource attributes while retaining passive links', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  // All of these authored URL attributes may cause a browser to fetch a
+  // remote resource, independently of img/srcset and link/stylesheet rules.
+  const remote = [
+    '<video controls poster="https://external.example.invalid/poster.png"></video>',
+    '<video autoplay muted src="https://external.example.invalid/video.mp4"></video>',
+    '<audio preload="auto" src="https://external.example.invalid/clip.mp3"></audio>',
+    '<track src="https://external.example.invalid/subtitles.vtt">',
+    '<input type="image" src="https://external.example.invalid/button.png">',
+    '<svg><image href="https://external.example.invalid/shape.svg"/></svg>',
+    '<svg><use xlink:href="https://external.example.invalid/icon.svg#shape"/></svg>',
+    '<table background="https://external.example.invalid/background.png"><tr><td>body</td></tr></table>',
+    '<video poster="https&#58;//external.example.invalid/encoded.png"></video>',
+  ];
+  for (const element of remote) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'an authored external media or SVG resource must be refused: ' + element);
+  }
+  // A clickable external link does not require a network fetch for inspection.
+  // This repair must not turn the packet into a no-links document.
+  const passive = safe.replace('<body>',
+    '<body><a href="https://external.example.invalid/ordinary-reference">external citation</a>');
+  assert.deepEqual(validateShpDocumentBytes(passive), [],
+    'a passive authored navigation link remains readable');
+  const inert = safe.replace('<body>',
+    '<body><!-- <video poster="https://external.example.invalid/inert.png"></video> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'an HTML comment is not an authored resource element');
+});
