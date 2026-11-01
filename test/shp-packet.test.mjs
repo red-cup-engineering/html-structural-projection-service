@@ -338,3 +338,31 @@ test('SHP inspection refuses external media and SVG resource attributes while re
   assert.deepEqual(validateShpDocumentBytes(inert), [],
     'an HTML comment is not an authored resource element');
 });
+
+test('SHP inspection refuses CSS resource loaders without treating comments as active style', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const hosted = [
+    '<style>@import "https://external.example.invalid/theme.css";</style>',
+    '<style>@im\\70ort "https://external.example.invalid/theme.css";</style>',
+    '<style>div{background:url(https://external.example.invalid/a.png)}</style>',
+    '<style>div{background:u\\72l(https://external.example.invalid/a.png)}</style>',
+    '<style>div{background:image-set("https://external.example.invalid/a.png" 1x)}</style>',
+    '<div style="background-image:url(https://external.example.invalid/a.png)">remote</div>',
+    '<div style="background-image:u\\72l(https://external.example.invalid/a.png)">escaped</div>',
+    '<style>div{background:url(/local-only.png)}</style>',
+  ];
+  for (const fragment of hosted) {
+    const document = safe.replace('<body>', '<body>' + fragment);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'authored CSS resource loader must be refused: ' + fragment);
+  }
+  const ordinary = safe.replace('<body>',
+    '<body><style>body{color:black} .quiet{opacity:.8}</style><div style="color:blue">safe</div>');
+  assert.deepEqual(validateShpDocumentBytes(ordinary), [],
+    'ordinary non-fetching CSS remains allowed');
+  const inert = safe.replace('<body>',
+    '<body><!-- <style>@import "https://external.example.invalid/css"</style> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'HTML comments containing fake style must not trigger a resource refusal');
+});
