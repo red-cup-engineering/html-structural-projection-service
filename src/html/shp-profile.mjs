@@ -210,8 +210,11 @@ export function validateShpDocumentBytes(value) {
         if (typeof css !== "string") return false;
         // CSS escapes can spell names (u\72l, @im\70ort); normalize
         // rather than using a raw substring check bypassable by escapes.
-        const normalized = css.replace(/\/\*[\s\S]*?\*\//gu, "")
-            .replace(/\\(?:([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?|([^\r\n\f]))/giu,
+        // CSS comment markers within quoted strings are not comments. A
+        // regex that strips /* ... */ can erase a live URL loader between
+        // two strings. Keep the whole authored CSS and fail closed when
+        // resource syntax appears, including inside inert CSS comments.
+        const normalized = css.replace(/\\(?:([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?|([^\r\n\f]))/giu,
                 (_escape, hexadecimal, character) => {
                     if (!hexadecimal) return character;
                     const point = parseInt(hexadecimal, 16);
