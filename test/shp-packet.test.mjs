@@ -366,3 +366,25 @@ test('SHP inspection refuses CSS resource loaders without treating comments as a
   assert.deepEqual(validateShpDocumentBytes(inert), [],
     'HTML comments containing fake style must not trigger a resource refusal');
 });
+
+
+test('SHP inspection checks authored template content for unsafe attributes', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const refused = [
+    ['SHP-DOC-010', '<template><span onfocus="noop()">focus</span></template>'],
+    ['SHP-DOC-011', '<template><iframe src="/local"></iframe></template>'],
+    ['SHP-DOC-012', '<template><a href="java&#x73;cript:noop()">text</a></template>'],
+    ['SHP-DOC-011', '<template><meta http-equiv=" Refresh " content="0;url=/local"></template>'],
+  ];
+  for (const [code, fragment] of refused) {
+    const html = safe.replace('<body>', '<body>' + fragment);
+    assert.ok(validateShpDocumentBytes(html).some(v => v.code === code),
+      'source-authored template content must not bypass document safety: ' + code);
+  }
+  assert.deepEqual(validateShpDocumentBytes(safe.replace('<body>',
+    '<body><!-- <template><iframe src="/local"></iframe></template> -->')), [],
+    'HTML comments are inert, not start tags');
+  assert.deepEqual(validateShpDocumentBytes(pack(form(), { source: 's', syntax: 'void 0;' }).html), [],
+    'the data-bearing syntax template remains accepted');
+});
