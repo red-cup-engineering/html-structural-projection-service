@@ -351,6 +351,10 @@ test('SHP inspection refuses CSS resource loaders without treating comments as a
     '<div style="background-image:url(https://external.example.invalid/a.png)">remote</div>',
     '<div style="background-image:u\\72l(https://external.example.invalid/a.png)">escaped</div>',
     '<style>div{background:url(/local-only.png)}</style>',
+    // CSS quoted comment delimiters are strings, not CSS comments;
+    // a naive comment-stripping regex must not erase a real loader between them.
+    '<style>p::before{content:"/*"} p{background:url(https://external.example.invalid/quoted-comment.png)} p::after{content:"*/"}</style>',
+    '<div style="--front:&quot;/*&quot;;background:url(https://external.example.invalid/inline-quoted-comment.png);--tail:&quot;*/&quot;">test</div>',
   ];
   for (const fragment of hosted) {
     const document = safe.replace('<body>', '<body>' + fragment);
@@ -361,6 +365,10 @@ test('SHP inspection refuses CSS resource loaders without treating comments as a
     '<body><style>body{color:black} .quiet{opacity:.8}</style><div style="color:blue">safe</div>');
   assert.deepEqual(validateShpDocumentBytes(ordinary), [],
     'ordinary non-fetching CSS remains allowed');
+  const quotedCommentText = safe.replace('<body>',
+    '<body><style>p::before{content:"/*"} p{color:blue} p::after{content:"*/"}</style>');
+  assert.deepEqual(validateShpDocumentBytes(quotedCommentText), [],
+    'CSS strings containing comment-like delimiters without loaders are allowed');
   const inert = safe.replace('<body>',
     '<body><!-- <style>@import "https://external.example.invalid/css"</style> -->');
   assert.deepEqual(validateShpDocumentBytes(inert), [],
