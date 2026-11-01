@@ -21,13 +21,13 @@ permissions:
 
 jobs:
   native:
-    uses: red-cup-engineering/continuous-delivery-engineering-services-section/.github/workflows/node-package.yml@df4eb6463c2c9c52a30b431aa7cb03923cb16144
+    uses: red-cup-engineering/continuous-delivery-engineering-services-section/.github/workflows/node-package.yml@ce71dcc89b647bbd38ede5690f81b5151cb6614b
     with:
       runs-on: '["ubuntu-24.04"]'
       node-version: "24.11.1"
       package-manager: pnpm
       pnpm-version: "10.19.0"
-      supplier-ref: "df4eb6463c2c9c52a30b431aa7cb03923cb16144"
+      supplier-ref: "ce71dcc89b647bbd38ede5690f81b5151cb6614b"
       source-commit: ${{ github.event.pull_request.head.sha || github.sha }}
       paths: '["."]'
       concurrency: 1
