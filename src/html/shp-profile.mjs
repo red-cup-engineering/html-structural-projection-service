@@ -1,5 +1,5 @@
 /** Declarative conformance profile for finite semantic-hypertext packets. */
-import { scanHtmlStartTags } from "./scan.mjs";
+import { readHtmlDocument, startTagsOfDocument } from "./scan.mjs";
 const DATA_ATTRIBUTE = /^data-[a-z0-9][a-z0-9-]*$/u;
 const STRUCTURAL_CLASS = /^[A-Za-z][A-Za-z0-9_-]*$/u;
 const REQUIRED_RFC7992_CLASSES = ["bcp14", "xref", "eref", "relref", "selfRef", "artwork", "sourcecode"];
@@ -160,7 +160,7 @@ export function validateShpDocumentBytes(value) {
     // Child, comment and template language claims cannot replace root testimony.
     let sourceRoots = 0;
     const authoredStartTags = [];
-    const tags = scanHtmlStartTags(value, { onSourceStartTag: token => {
+    const document = readHtmlDocument(value, { onSourceStartTag: token => {
         // The tokenizer records authored tokens even when tree correction
         // moves/discards a tag. Comments and quoted text have no start token.
         if (token.tagName === "html") sourceRoots++;
@@ -169,6 +169,7 @@ export function validateShpDocumentBytes(value) {
             attributes: Object.fromEntries(token.attrs.map(({ name, value }) => [name, value])),
         });
     }});
+    const tags = startTagsOfDocument(document);
     const roots = tags.filter(({ name }) => name === "html");
     if (sourceRoots !== 1 || roots.length !== 1) {
         fail("SHP-DOC-003", "packet must carry exactly one original HTML root start tag");
@@ -202,6 +203,34 @@ export function validateShpDocumentBytes(value) {
             ((attribute === "href" || attribute === "xlink:href") &&
                 linkedResourceElements.has(name) && isNetworkUrl(url)))))
         fail("SHP-DOC-006", "document must not require external network resources");
+    // CSS @import, URL functions and image sets can fetch during display.
+    // A complete CSS resource resolver is not in this packet's contract:
+    // conservatively refuse fetching syntax, even if it names a local file.
+    const cssMayRequestResource = css => {
+        if (typeof css !== "string") return false;
+        // CSS escapes can spell names (u\72l, @im\70ort); normalize
+        // rather than using a raw substring check bypassable by escapes.
+        const normalized = css.replace(/\/\*[\s\S]*?\*\//gu, "")
+            .replace(/\\(?:([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?|([^\r\n\f]))/giu,
+                (_escape, hexadecimal, character) => {
+                    if (!hexadecimal) return character;
+                    const point = parseInt(hexadecimal, 16);
+                    return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : "\ufffd";
+                });
+        return /@import\b|(?:url|src|image-set|cross-fade)\s*\(/iu.test(normalized);
+    };
+    let cssResource = authoredStartTags.some(({ attributes }) => cssMayRequestResource(attributes.style));
+    const cssNodes = [document];
+    while (!cssResource && cssNodes.length > 0) {
+        const node = cssNodes.pop();
+        if (node.tagName === "style" &&
+            cssMayRequestResource((node.childNodes ?? []).map(child => child.value ?? "").join("")))
+            cssResource = true;
+        for (const child of node.childNodes ?? []) cssNodes.push(child);
+        if (node.content) cssNodes.push(node.content);
+    }
+    if (cssResource)
+        fail("SHP-DOC-006", "document CSS must not request external resources");
     if (!tags.some(({ attrs }) => typeof attrs.class === "string" && attrs.class.trim().length > 0))
         fail("SHP-DOC-007", "document must carry structural classes");
     if (!tags.some(({ attrs }) => Object.entries(attrs).some(([name, coordinate]) =>
