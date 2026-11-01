@@ -252,3 +252,30 @@ test('HTML NUL display normalization retains original typed coordinates and evid
   assert.deepEqual(markup(renderPacket(packet)), cells);
   assert.doesNotMatch(packet.html, /\u0000/u);
 });
+
+test('SHP inspection refuses authored network resources regardless of HTML attribute quoting', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const networkElements = [
+    '<img src="https://external.example.invalid/image.png">',
+    "<img src='https://external.example.invalid/image.png'>",
+    '<img src=https://external.example.invalid/image.png>',
+    '<img src="//external.example.invalid/image.png">',
+    "<link rel=stylesheet href='http://external.example.invalid/theme.css'>",
+    '<img src="https&#58;//external.example.invalid/image.png">',
+    "<script src='https://external.example.invalid/run.js'></script>",
+  ];
+  for (const element of networkElements) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.notEqual(document, safe, 'positive fixture must include a body insertion point');
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'real source attributes must refuse external network dependency: ' + element);
+  }
+  const comment = safe.replace('<body>',
+    '<body><!-- <img src="https://external.example.invalid/forged.png"><script src="https://external.example.invalid/forged.js"></script> -->');
+  assert.deepEqual(validateShpDocumentBytes(comment), [],
+    'literal text in an inert comment must not be treated as authored network or script elements');
+  const activeScript = safe.replace('<body>', '<body><script>void 0</script>');
+  assert.ok(validateShpDocumentBytes(activeScript).some(({ code }) => code === 'SHP-DOC-005'),
+    'an authored script token must remain refused');
+});
