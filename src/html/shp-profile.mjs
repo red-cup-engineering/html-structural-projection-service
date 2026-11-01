@@ -158,10 +158,17 @@ export function validateShpDocumentBytes(value) {
         fail("SHP-DOC-002", "document must start with an HTML doctype");
     // Read the real root through the same native parser as the safety scan.
     // Child, comment and template language claims cannot replace root testimony.
-    const tags = scanHtmlStartTags(value);
+    let sourceRoots = 0;
+    const tags = scanHtmlStartTags(value, { onSourceStartTag: token => {
+        // An ignored duplicate <html> is still an authored token, and can
+        // merge an untrusted lang onto the retained tree root. Count tokens
+        // in the actual HTML tokenizer, never substrings inside comments,
+        // quoted attributes, script text, or normalized DOM descendants.
+        if (token.tagName === "html") sourceRoots++;
+    }});
     const roots = tags.filter(({ name }) => name === "html");
-    if (roots.length !== 1) {
-        fail("SHP-DOC-003", "packet must carry one explicit HTML root");
+    if (sourceRoots !== 1 || roots.length !== 1) {
+        fail("SHP-DOC-003", "packet must carry exactly one original HTML root start tag");
     } else if (roots[0].attrs.lang !== undefined) {
         try { canonicalShpLanguage(roots[0].attrs.lang); }
         catch { fail("SHP-DOC-003", "source-declared root language must be a canonical BCP 47 tag"); }
