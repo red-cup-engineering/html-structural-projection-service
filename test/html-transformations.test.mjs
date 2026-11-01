@@ -27,3 +27,25 @@ test('original parse5 token reading retains authored roots lost to HTML tree cor
  assert.equal(authored[1].attrs.find(x=>x[0]==='lang')?.[1],'ar');
  assert.throws(()=>scanHtmlStartTags(input,{onSourceStartTag:true}),TypeError);
 });
+
+test('source callbacks cannot mutate parse5 tokens, root language or original tree',()=>{
+ const source='<!doctype html><html lang="lkt"><head><meta charset="utf-8"></head><body><p data-e="source:original">ᓀᐦᐃᔭᐍᐏᐣ</p></body></html>';
+ const baseline=scanHtmlStartTags(source);
+ const seen=[];
+ const actual=scanHtmlStartTags(source,{onSourceStartTag:token=>{
+  if(token.tagName!=='html')return;
+  seen.push(token);
+  assert.ok(Object.isFrozen(token));
+  assert.ok(Object.isFrozen(token.location));
+  assert.ok(Object.isFrozen(token.attrs));
+  assert.ok(Object.isFrozen(token.attrs[0]));
+  assert.throws(()=>{token.tagName='script';},TypeError);
+  assert.throws(()=>{token.attrs[0].value='en';},TypeError);
+  assert.throws(()=>{token.location.startOffset=999;},TypeError);
+  assert.throws(()=>{token.attrs.push({name:'onload',value:'alert(1)'});},TypeError);
+ }});
+ assert.equal(seen.length,1,'one source root token was observed');
+ assert.deepEqual(actual,baseline,'observing source tokens never changes parsed HTML semantics');
+ assert.equal(actual.find(x=>x.name==='html')?.attrs.lang,'lkt');
+ assert.equal(actual.find(x=>x.name==='p')?.attrs['data-e'],'source:original');
+});
