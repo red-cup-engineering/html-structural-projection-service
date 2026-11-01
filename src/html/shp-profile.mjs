@@ -186,17 +186,21 @@ export function validateShpDocumentBytes(value) {
     // HTML entities), not raw substrings that comments can forge.
     const isNetworkUrl = url => typeof url === "string" &&
         /^(?:https?:|\/\/)/iu.test(url.replace(/[\u0000-\u0020\u007f]/gu, ""));
-    // srcset/imagesrcset may contain multiple image candidates with commas,
-    // whitespace and data URLs. Until a standards-qualified candidate parser
-    // is available, refuse authored responsive-source attributes altogether:
-    // a substring check would miss external candidates after a local fallback.
-    // The existing HTML parser supplies the real authored attributes, so
-    // comments and inert text cannot forge this refusal.
+    // Network-bearing attributes exist beyond img/src and link/href:
+    // media src/poster, track, input-image, legacy backgrounds and SVG
+    // image/use references can all fetch resources during inspection.
+    // Check authored tokens from the real HTML parser rather than DOM-only
+    // survivors or raw text in comments. Passive a/href links stay allowed.
+    // Responsive candidates are not safely divisible with substring checks:
+    // refuse their presence until a standards-qualified parser is available.
+    const resourceAttributes = new Set(["src", "poster", "background", "data"]);
+    const linkedResourceElements = new Set(["link", "image", "use", "feimage"]);
     if (authoredStartTags.some(({ name, attributes }) =>
-        (["img", "source", "link"].includes(name) &&
-            ["srcset", "imagesrcset"].some(attribute => Object.hasOwn(attributes, attribute))) ||
-        (["img", "script", "link", "source"].includes(name) &&
-            ["src", "href"].some(attribute => isNetworkUrl(attributes[attribute])))))
+        Object.entries(attributes).some(([attribute, url]) =>
+            attribute === "srcset" || attribute === "imagesrcset" ||
+            (resourceAttributes.has(attribute) && isNetworkUrl(url)) ||
+            ((attribute === "href" || attribute === "xlink:href") &&
+                linkedResourceElements.has(name) && isNetworkUrl(url)))))
         fail("SHP-DOC-006", "document must not require external network resources");
     if (!tags.some(({ attrs }) => typeof attrs.class === "string" && attrs.class.trim().length > 0))
         fail("SHP-DOC-007", "document must carry structural classes");
