@@ -159,12 +159,15 @@ export function validateShpDocumentBytes(value) {
     // Read the real root through the same native parser as the safety scan.
     // Child, comment and template language claims cannot replace root testimony.
     let sourceRoots = 0;
+    const authoredStartTags = [];
     const tags = scanHtmlStartTags(value, { onSourceStartTag: token => {
-        // An ignored duplicate <html> is still an authored token, and can
-        // merge an untrusted lang onto the retained tree root. Count tokens
-        // in the actual HTML tokenizer, never substrings inside comments,
-        // quoted attributes, script text, or normalized DOM descendants.
+        // The tokenizer records authored tokens even when tree correction
+        // moves/discards a tag. Comments and quoted text have no start token.
         if (token.tagName === "html") sourceRoots++;
+        authoredStartTags.push({
+            name: token.tagName,
+            attributes: Object.fromEntries(token.attrs.map(({ name, value }) => [name, value])),
+        });
     }});
     const roots = tags.filter(({ name }) => name === "html");
     if (sourceRoots !== 1 || roots.length !== 1) {
@@ -177,9 +180,15 @@ export function validateShpDocumentBytes(value) {
     // value can contain text resembling an attribute without introducing one.
     if (!tags.some(({ name, attrs }) => name === "meta" && attrs.charset?.toLowerCase() === "utf-8"))
         fail("SHP-DOC-004", "document must declare utf-8 charset");
-    if (/<script\b/i.test(value))
+    if (authoredStartTags.some(({ name }) => name === "script"))
         fail("SHP-DOC-005", "document must not contain scripts");
-    if (/<(?:img|script|link)\b[^>]*(?:src|href)="https?:\/\//i.test(value))
+    // Parse attribute values (including single quotes, unquoted URLs and
+    // HTML entities), not raw substrings that comments can forge.
+    const isNetworkUrl = url => typeof url === "string" &&
+        /^(?:https?:|\\/\\/)/iu.test(url.replace(/[\\u0000-\\u0020\\u007f]/gu, ""));
+    if (authoredStartTags.some(({ name, attributes }) =>
+        ["img", "script", "link"].includes(name) &&
+        ["src", "href"].some(attribute => isNetworkUrl(attributes[attribute]))))
         fail("SHP-DOC-006", "document must not require external network resources");
     if (!tags.some(({ attrs }) => typeof attrs.class === "string" && attrs.class.trim().length > 0))
         fail("SHP-DOC-007", "document must carry structural classes");
