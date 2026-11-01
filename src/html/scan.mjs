@@ -1,14 +1,29 @@
-import {parse,defaultTreeAdapter} from 'parse5';
+import {parse,Parser,defaultTreeAdapter} from 'parse5';
 import {decodeHTML,decodeHTMLAttribute} from 'entities';
 export const decodeHtmlEntities=(value,context='text')=>{
  if(context!=='text'&&context!=='attribute')throw new TypeError('HTML entity context must be text or attribute');
  return context==='attribute'?decodeHTMLAttribute(value):decodeHTML(value);
 };
 /** Native HTML document parsing; no scripts, fetching or browser layout. */
-export function readHtmlDocument(html,{maximumNodes=Infinity,maximumDepth=Infinity,maximumAttributes=Infinity,onParseError}={}){
+export function readHtmlDocument(html,{maximumNodes=Infinity,maximumDepth=Infinity,maximumAttributes=Infinity,onParseError,onSourceStartTag}={}){
+ if(onSourceStartTag!==undefined&&typeof onSourceStartTag!=='function')
+  throw new TypeError('source-tag receiving requires a function');
  let created=0;
  const treeAdapter={...defaultTreeAdapter,createElement(...args){if(++created>maximumNodes)throw new RangeError('HTML exceeds its node limit');return defaultTreeAdapter.createElement(...args);}};
- const document=parse(html,{sourceCodeLocationInfo:true,scriptingEnabled:true,treeAdapter,onParseError});
+ // The regular DOM remains the original parser. A packet receiver may also
+ // witness lexical start-tag tokens *before* HTML tree correction merges a
+ // second <html> into the first. Use parse5's own tokenizer/Parser, not a
+ // parallel regex or handcrafted HTML lexer.
+ let document;
+ if(onSourceStartTag===undefined){
+  document=parse(html,{sourceCodeLocationInfo:true,scriptingEnabled:true,treeAdapter,onParseError});
+ }else{
+  const parser=new Parser({sourceCodeLocationInfo:true,scriptingEnabled:true,treeAdapter,onParseError});
+  const original=parser.onStartTag.bind(parser);
+  parser.onStartTag=token=>{onSourceStartTag(token);return original(token);};
+  parser.tokenizer.write(html,true);
+  document=parser.document;
+ }
  const stack=[{node:document,depth:0}];let nodes=0,attributes=0;
  while(stack.length){const {node,depth}=stack.pop();if(++nodes>maximumNodes||depth>maximumDepth)throw new RangeError('HTML exceeds its node/depth limit');attributes+=node.attrs?.length??0;if(attributes>maximumAttributes)throw new RangeError('HTML exceeds its attribute limit');for(const child of node.childNodes??[])stack.push({node:child,depth:depth+1});if(node.content)stack.push({node:node.content,depth:depth+1});}
  return document;
@@ -24,7 +39,11 @@ export function startTagsOfDocument(document){
  }
  out.sort((a,b)=>a.index-b.index);return Object.freeze(out);
 }
-export const scanHtmlStartTags=html=>startTagsOfDocument(readHtmlDocument(html));
+/** Same native parser and tree correction; an optional trusted callback
+ * additionally witnesses start-tag tokens before tree recovery drops them.
+ * Token source location is authored bytes, not synthesized DOM position. */
+export const scanHtmlStartTags=(html,{onSourceStartTag}={})=>
+ startTagsOfDocument(readHtmlDocument(html,{onSourceStartTag}));
 export const relTokens=attrs=>attrs.rel?Object.freeze(attrs.rel.trim().toLowerCase().split(/\s+/).filter(Boolean)):Object.freeze([]);
 /** First parsed base href, with the actual document URL as fallback. */
 export function documentBaseFromTags(tags,fallbackUrl){for(const tag of tags){if(tag.name==='base'&&tag.attrs.href!==undefined){try{return new URL(tag.attrs.href,fallbackUrl).href;}catch{return fallbackUrl;}}}return fallbackUrl;}
