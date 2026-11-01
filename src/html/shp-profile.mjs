@@ -185,7 +185,7 @@ export function validateShpDocumentBytes(value) {
     // Parse attribute values (including single quotes, unquoted URLs and
     // HTML entities), not raw substrings that comments can forge.
     const isNetworkUrl = url => typeof url === "string" &&
-        /^(?:https?:|\\/\\/)/iu.test(url.replace(/[\\u0000-\\u0020\\u007f]/gu, ""));
+        /^(?:https?:|\/\/)/iu.test(url.replace(/[\u0000-\u0020\u007f]/gu, ""));
     if (authoredStartTags.some(({ name, attributes }) =>
         ["img", "script", "link"].includes(name) &&
         ["src", "href"].some(attribute => isNetworkUrl(attributes[attribute]))))
