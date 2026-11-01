@@ -173,15 +173,18 @@ export function validateShpDocumentBytes(value) {
         try { canonicalShpLanguage(roots[0].attrs.lang); }
         catch { fail("SHP-DOC-003", "source-declared root language must be a canonical BCP 47 tag"); }
     }
-    if (!/<meta\b[^>]*\bcharset="utf-8"/i.test(value))
+    // Accept evidence only from actual parsed elements. A comment or quoted
+    // value can contain text resembling an attribute without introducing one.
+    if (!tags.some(({ name, attrs }) => name === "meta" && attrs.charset?.toLowerCase() === "utf-8"))
         fail("SHP-DOC-004", "document must declare utf-8 charset");
     if (/<script\b/i.test(value))
         fail("SHP-DOC-005", "document must not contain scripts");
     if (/<(?:img|script|link)\b[^>]*(?:src|href)="https?:\/\//i.test(value))
         fail("SHP-DOC-006", "document must not require external network resources");
-    if (!/\bclass="/i.test(value))
+    if (!tags.some(({ attrs }) => typeof attrs.class === "string" && attrs.class.trim().length > 0))
         fail("SHP-DOC-007", "document must carry structural classes");
-    if (!/\bdata-[a-z0-9][a-z0-9-]*="/i.test(value))
+    if (!tags.some(({ attrs }) => Object.entries(attrs).some(([name, coordinate]) =>
+        DATA_ATTRIBUTE.test(name) && typeof coordinate === "string" && coordinate.length > 0)))
         fail("SHP-DOC-008", "document must carry data-* coordinates");
     if (/\r/.test(value))
         fail("SHP-DOC-009", "document must use LF line endings");

@@ -170,6 +170,25 @@ test('source language refuses conflict, noncanonical tags, forged roots and unsa
     'previous generic SHP packets with explicit English remain readable');
 });
 
+test('SHP inspection demands real parser attributes, not comment-forged packet evidence', () => {
+  const valid = project(form());
+  assert.deepEqual(validateShpDocumentBytes(valid), [], 'the original good packet is still accepted');
+  const invalid = [
+    ['SHP-DOC-004', valid.replace(/<meta\b[^>]*\bcharset="utf-8"[^>]*>/iu, '')
+      .replace('<head>', '<head><!-- <meta charset="utf-8"> -->')],
+    ['SHP-DOC-007', valid.replace(/\sclass="[^"]*"/gu, '')
+      .replace('<body>', '<body><!-- <section class="falsely-structural"> -->')],
+    ['SHP-DOC-008', valid.replace(/\sdata-[a-z0-9][a-z0-9-]*="[^"]*"/gu, '')
+      .replace('<body>', '<body><!-- <section data-source="falsely-carried"> -->')],
+  ];
+  for (const [code, html] of invalid)
+    assert.ok(validateShpDocumentBytes(html).some(violation => violation.code === code),
+      'comment cannot substitute for the required authored attribute: ' + code);
+  assert.deepEqual(validateShpDocumentBytes(valid.replace('<head>',
+    '<head><!-- <meta charset="utf-8"><section class="fake" data-source="fake"> -->')), [],
+    'irrelevant comment tokens cannot alter a valid packet');
+});
+
 test('a receiving document renderer wraps the exact article and remains within inspection safety', () => {
   const packet = pack(form(), {
     source: 'source:1',
