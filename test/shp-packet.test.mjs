@@ -279,3 +279,29 @@ test('SHP inspection refuses authored network resources regardless of HTML attri
   assert.ok(validateShpDocumentBytes(activeScript).some(({ code }) => code === 'SHP-DOC-005'),
     'an authored script token must remain refused');
 });
+
+
+test('SHP inspection refuses authored responsive image-source candidates, including after a local fallback', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), [], 'existing packet remains accepted');
+  const responsiveResources = [
+    '<img srcset="https://external.example.invalid/a.png 1x">',
+    '<img src="/local.png" srcset="/local.png 1x, https://external.example.invalid/b.png 2x">',
+    '<picture><source srcset="//external.example.invalid/c.webp 1x"><img src="/local.png"></picture>',
+    '<img srcset="https&#58;//external.example.invalid/a.png 1x">',
+    '<link rel="preload" as="image" imagesrcset="https://external.example.invalid/d.png 2x">',
+    '<source src=https://external.example.invalid/f.png>',
+    // Fail closed even for local-only responsive candidates until a browser-equivalent
+    // candidate parser can distinguish and admit them.
+    '<img srcset="/local.png 1x">',
+  ];
+  for (const element of responsiveResources) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'responsive network-source admission must refuse: ' + element);
+  }
+  const inert = safe.replace('<body>',
+    '<body><!-- <img srcset="https://external.example.invalid/forged.png 1x"> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'a commented srcset is inert, not an authored resource candidate');
+});
