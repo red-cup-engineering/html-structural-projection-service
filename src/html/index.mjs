@@ -21,7 +21,7 @@ import { sha256Bytes } from "@red-cup-engineering/cryptographic-computer-data-en
 import { slugify as slugifyText } from "@red-cup-engineering/computer-text-content-engineering-services-section/slugify-text";
 import { decodeHtmlEntities, scanHtmlStartTags } from "./scan.mjs";
 import { htmlDisplayText, escapeHtmlTextValue, escapeHtmlAttributeValue } from "./lexical.mjs";
-import { validateShpDocumentBytes } from "./shp-profile.mjs";
+import { validateShpDocumentBytes, canonicalShpLanguage } from "./shp-profile.mjs";
 import { readingOfSides } from "@red-cup-engineering/computer-data-engineering-services-section/four";
 export * from "./string-rendering.mjs";
 export * from "./scan.mjs";
@@ -86,6 +86,8 @@ export function fromDetect(report, opts = {}) {
 function carryOpts(dataform, opts) {
     if (opts.title !== undefined)
         dataform.title = opts.title;
+    if (opts.language !== undefined)
+        dataform.language = canonicalShpLanguage(opts.language);
     if (opts.observer !== undefined)
         dataform.observer = opts.observer;
     if (opts.metadata !== undefined)
@@ -223,12 +225,22 @@ export function project(dataform, morphisms = defaultMorphisms(), options = {}) 
         throw new TypeError("project: dataform.subject is required");
     }
     const title = dataform.title ?? subject;
+    // Do not override contradictory source testimony or invent an English
+    // language when the source declared none. This is not RFC 7992 HTML.
+    const sourceLanguage = dataform.language === undefined ? undefined
+        : canonicalShpLanguage(dataform.language);
+    const requestedLanguage = options.language === undefined ? undefined
+        : canonicalShpLanguage(options.language);
+    if (sourceLanguage !== undefined && requestedLanguage !== undefined && sourceLanguage !== requestedLanguage)
+        throw new TypeError("shp: renderer language conflicts with source-declared language");
+    const language = sourceLanguage ?? requestedLanguage;
+    const rootLanguage = language === undefined ? "" : ` lang="${language}"`;
     const metaTags = Object.entries(dataform.metadata ?? {})
         .map(([key, value]) => `    <meta name="${escapeAttr(key)}" content="${escapeAttr(value)}">`)
         .join("\n");
     const article = projectArticle(dataform, morphisms, options);
     return `<!DOCTYPE html>
-<html lang="en">
+<html${rootLanguage}>
 <head>
     <meta charset="utf-8">
     <title>${escapeText(title)}</title>${metaTags ? "\n" + metaTags : ""}

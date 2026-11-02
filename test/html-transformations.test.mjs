@@ -13,3 +13,39 @@ test('all canonical WHATWG named references and ambiguous suffixes retain their 
 function dump(node,depth=0){const indent='| '+'  '.repeat(depth),out=[];switch(node.kind){case'document':return node.children.flatMap(n=>dump(n,depth));case'fragment':out.push(indent+'content');break;case'element':out.push(indent+'<'+(node.namespace==='http://www.w3.org/1999/xhtml'?'':node.namespace==='http://www.w3.org/2000/svg'?'svg ':'math ')+node.name+'>');for(const a of [...node.attributes].sort((a,b)=>a.name.localeCompare(b.name)))out.push(indent+'  '+(a.prefix?a.prefix+' ':'')+a.name+'="'+a.value+'"');break;case'text':return[indent+'"'+node.value+'"'];case'comment':return[indent+'<!-- '+node.value+' -->'];case'doctype':return[indent+'<!DOCTYPE '+node.name+(node.publicId||node.systemId?' "'+node.publicId+'" "'+node.systemId+'"':'')+'>'];default:throw Error(node.kind);}for(const c of node.children??[])out.push(...dump(c,depth+1));if(node.content)out.push(...dump(node.content,depth+1));return out;}
 
 test('selected standalone HTML5lib trees retain their independent expected shape',()=>{const corpus=JSON.parse(fs.readFileSync(new URL('./fixtures/html5lib-document-trees.json',import.meta.url)));assert.equal(corpus.fixtures.length,50);for(const f of corpus.fixtures)assert.equal(dump(htmlToJsonTree({html:f.html}).document).join('\n'),f.expected,f.html);});
+
+test('original parse5 token reading retains authored roots lost to HTML tree correction',()=>{
+ const input="<!doctype html><html lang=\"lkt\"><head><title>Do not parse <html lang=\"en\"></title></head><body><!-- <html lang=\"en\"> --><p data-source=\"<html lang='ar'>\">Original reading</p><script>const x=\"<html lang='ar'>\"</script><HTML lang=\"ar\"></body></html>";
+ const authored=[];
+ const dom=scanHtmlStartTags(input,{onSourceStartTag:token=>{
+  if(token.tagName==='html')authored.push({tag:token.tagName,start:token.location?.startOffset,attrs:token.attrs.map(x=>[x.name,x.value])});
+ }});
+ assert.equal(dom.filter(x=>x.name==='html').length,1,
+  'the normal HTML tree merges/drops the extra root before DOM scanning');
+ assert.deepEqual(authored.map(x=>x.start),[input.indexOf('<html'),input.indexOf('<HTML')]);
+ assert.equal(authored[0].attrs.find(x=>x[0]==='lang')?.[1],'lkt');
+ assert.equal(authored[1].attrs.find(x=>x[0]==='lang')?.[1],'ar');
+ assert.throws(()=>scanHtmlStartTags(input,{onSourceStartTag:true}),TypeError);
+});
+
+test('source callbacks cannot mutate parse5 tokens, root language or original tree',()=>{
+ const source='<!doctype html><html lang="lkt"><head><meta charset="utf-8"></head><body><p data-e="source:original">ᓀᐦᐃᔭᐍᐏᐣ</p></body></html>';
+ const baseline=scanHtmlStartTags(source);
+ const seen=[];
+ const actual=scanHtmlStartTags(source,{onSourceStartTag:token=>{
+  if(token.tagName!=='html')return;
+  seen.push(token);
+  assert.ok(Object.isFrozen(token));
+  assert.ok(Object.isFrozen(token.location));
+  assert.ok(Object.isFrozen(token.attrs));
+  assert.ok(Object.isFrozen(token.attrs[0]));
+  assert.throws(()=>{token.tagName='script';},TypeError);
+  assert.throws(()=>{token.attrs[0].value='en';},TypeError);
+  assert.throws(()=>{token.location.startOffset=999;},TypeError);
+  assert.throws(()=>{token.attrs.push({name:'onload',value:'alert(1)'});},TypeError);
+ }});
+ assert.equal(seen.length,1,'one source root token was observed');
+ assert.deepEqual(actual,baseline,'observing source tokens never changes parsed HTML semantics');
+ assert.equal(actual.find(x=>x.name==='html')?.attrs.lang,'lkt');
+ assert.equal(actual.find(x=>x.name==='p')?.attrs['data-e'],'source:original');
+});

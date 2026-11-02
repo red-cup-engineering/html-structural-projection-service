@@ -1,10 +1,22 @@
 /** Declarative conformance profile for finite semantic-hypertext packets. */
-import { scanHtmlStartTags } from "./scan.mjs";
+import { readHtmlDocument, startTagsOfDocument } from "./scan.mjs";
 const DATA_ATTRIBUTE = /^data-[a-z0-9][a-z0-9-]*$/u;
 const STRUCTURAL_CLASS = /^[A-Za-z][A-Za-z0-9_-]*$/u;
 const REQUIRED_RFC7992_CLASSES = ["bcp14", "xref", "eref", "relref", "selfRef", "artwork", "sourcecode"];
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const nonEmpty = (value) => typeof value === "string" && value.length > 0;
+/** Source-claimed language, not the viewer's locale, an inferred translation
+ * or English by default. The canonical SHP source owner admits the same
+ * Intl-recognized canonical BCP 47 subset. */
+export function canonicalShpLanguage(value) {
+    if (typeof value !== "string" || !value || value.length > 128 || value.trim() !== value)
+        throw new TypeError("shp: language must be a canonical BCP 47 tag");
+    let canonical;
+    try { [canonical] = Intl.getCanonicalLocales(value); }
+    catch { throw new TypeError("shp: language must be a canonical BCP 47 tag"); }
+    if (canonical !== value) throw new TypeError("shp: language must be a canonical BCP 47 tag");
+    return value;
+}
 const strings = (value) => Array.isArray(value) && value.length > 0 && value.every(nonEmpty) && new Set(value).size === value.length
     ? value
     : null;
@@ -135,7 +147,8 @@ export function assertValidShpProfile(value) {
     if (violations.length > 0)
         throw new TypeError(violations.map(({ code, path, message }) => `${code} ${path}: ${message}`).join("\n"));
 }
-/** Validate byte-level invariants required by the declarative RFC 7992 inhabitant. */
+/** Generic SHP inspection safety. English-only RFC 7992 is a separate
+ * specific inhabitant declaration; it cannot govern all SHP packets. */
 export function validateShpDocumentBytes(value) {
     if (typeof value !== "string" || value.length === 0)
         return [Object.freeze({ code: "SHP-DOC-001", path: "<document>", message: "document bytes must be a non-empty string" })];
@@ -143,24 +156,100 @@ export function validateShpDocumentBytes(value) {
     const fail = (code, message) => { violations.push(Object.freeze({ code, path: "<document>", message })); };
     if (!/^<!doctype html>/i.test(value))
         fail("SHP-DOC-002", "document must start with an HTML doctype");
-    if (!/<html\b[^>]*\blang="en"/i.test(value))
-        fail("SHP-DOC-003", "root html element must declare lang=en");
-    if (!/<meta\b[^>]*\bcharset="utf-8"/i.test(value))
+    // Read the real root through the same native parser as the safety scan.
+    // Child, comment and template language claims cannot replace root testimony.
+    let sourceRoots = 0;
+    const authoredStartTags = [];
+    const document = readHtmlDocument(value, { onSourceStartTag: token => {
+        // The tokenizer records authored tokens even when tree correction
+        // moves/discards a tag. Comments and quoted text have no start token.
+        if (token.tagName === "html") sourceRoots++;
+        authoredStartTags.push({
+            name: token.tagName,
+            attributes: Object.fromEntries(token.attrs.map(({ name, value }) => [name, value])),
+        });
+    }});
+    const tags = startTagsOfDocument(document);
+    const roots = tags.filter(({ name }) => name === "html");
+    if (sourceRoots !== 1 || roots.length !== 1) {
+        fail("SHP-DOC-003", "packet must carry exactly one original HTML root start tag");
+    } else if (roots[0].attrs.lang !== undefined) {
+        try { canonicalShpLanguage(roots[0].attrs.lang); }
+        catch { fail("SHP-DOC-003", "source-declared root language must be a canonical BCP 47 tag"); }
+    }
+    // Accept evidence only from actual parsed elements. A comment or quoted
+    // value can contain text resembling an attribute without introducing one.
+    if (!tags.some(({ name, attrs }) => name === "meta" && attrs.charset?.toLowerCase() === "utf-8"))
         fail("SHP-DOC-004", "document must declare utf-8 charset");
-    if (/<script\b/i.test(value))
+    if (authoredStartTags.some(({ name }) => name === "script"))
         fail("SHP-DOC-005", "document must not contain scripts");
-    if (/<(?:img|script|link)\b[^>]*(?:src|href)="https?:\/\//i.test(value))
+    // Parse attribute values (including single quotes, unquoted URLs and
+    // HTML entities), not raw substrings that comments can forge.
+    const isNetworkUrl = url => typeof url === "string" &&
+        // Special-scheme URL parsing treats backslashes as slashes. Mixed
+        // slash pairs can therefore select another host just like //host.
+        /^(?:https?:|[\\/]{2})/iu.test(url.replace(/[\u0000-\u0020\u007f]/gu, ""));
+    // Network-bearing attributes exist beyond img/src and link/href:
+    // media src/poster, track, input-image, legacy backgrounds and SVG
+    // image/use references can all fetch resources during inspection.
+    // Check authored tokens from the real HTML parser rather than DOM-only
+    // survivors or raw text in comments. Passive a/href links stay allowed.
+    // Responsive candidates are not safely divisible with substring checks:
+    // refuse their presence until a standards-qualified parser is available.
+    const resourceAttributes = new Set(["src", "poster", "background", "data"]);
+    const linkedResourceElements = new Set(["link", "image", "use", "feimage"]);
+    if (authoredStartTags.some(({ name, attributes }) =>
+        Object.entries(attributes).some(([attribute, url]) =>
+            attribute === "srcset" || attribute === "imagesrcset" ||
+            (resourceAttributes.has(attribute) && isNetworkUrl(url)) ||
+            ((attribute === "href" || attribute === "xlink:href") &&
+                linkedResourceElements.has(name) && isNetworkUrl(url)))))
         fail("SHP-DOC-006", "document must not require external network resources");
-    if (!/\bclass="/i.test(value))
+    // CSS @import, URL functions and image sets can fetch during display.
+    // A complete CSS resource resolver is not in this packet's contract:
+    // conservatively refuse fetching syntax, even if it names a local file.
+    const cssMayRequestResource = css => {
+        if (typeof css !== "string") return false;
+        // CSS escapes can spell names (u\72l, @im\70ort); normalize
+        // rather than using a raw substring check bypassable by escapes.
+        // CSS comment markers within quoted strings are not comments. A
+        // regex that strips /* ... */ can erase a live URL loader between
+        // two strings. Keep the whole authored CSS and fail closed when
+        // resource syntax appears, including inside inert CSS comments.
+        const normalized = css.replace(/\\(?:([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?|([^\r\n\f]))/giu,
+                (_escape, hexadecimal, character) => {
+                    if (!hexadecimal) return character;
+                    const point = parseInt(hexadecimal, 16);
+                    return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : "\ufffd";
+                });
+        return /@import\b|(?:url|src|image-set|cross-fade)\s*\(/iu.test(normalized);
+    };
+    let cssResource = authoredStartTags.some(({ attributes }) => cssMayRequestResource(attributes.style));
+    const cssNodes = [document];
+    while (!cssResource && cssNodes.length > 0) {
+        const node = cssNodes.pop();
+        if (node.tagName === "style" &&
+            cssMayRequestResource((node.childNodes ?? []).map(child => child.value ?? "").join("")))
+            cssResource = true;
+        for (const child of node.childNodes ?? []) cssNodes.push(child);
+        if (node.content) cssNodes.push(node.content);
+    }
+    if (cssResource)
+        fail("SHP-DOC-006", "document CSS must not request external resources");
+    if (!tags.some(({ attrs }) => typeof attrs.class === "string" && attrs.class.trim().length > 0))
         fail("SHP-DOC-007", "document must carry structural classes");
-    if (!/\bdata-[a-z0-9][a-z0-9-]*="/i.test(value))
+    if (!tags.some(({ attrs }) => Object.entries(attrs).some(([name, coordinate]) =>
+        DATA_ATTRIBUTE.test(name) && typeof coordinate === "string" && coordinate.length > 0)))
         fail("SHP-DOC-008", "document must carry data-* coordinates");
     if (/\r/.test(value))
         fail("SHP-DOC-009", "document must use LF line endings");
-    for (const { name, attrs } of scanHtmlStartTags(value)) {
+    // The DOM-only structural walk skips template contents. Enforce the
+    // security boundary on parser-witnessed source tokens instead, including
+    // inert template fragments that a consumer could later instantiate.
+    for (const { name, attributes: attrs } of authoredStartTags) {
         if (Object.keys(attrs).some((key) => /^on/i.test(key)))
             fail("SHP-DOC-010", "inspection must not execute event handlers");
-        if (["iframe", "object", "embed", "base"].includes(name) || attrs.srcdoc !== undefined || (name === "meta" && attrs["http-equiv"]?.toLowerCase() === "refresh"))
+        if (["iframe", "object", "embed", "base"].includes(name) || attrs.srcdoc !== undefined || (name === "meta" && attrs["http-equiv"]?.trim().toLowerCase() === "refresh"))
             fail("SHP-DOC-011", "inspection must not activate embedded documents or redirects");
         for (const key of ["href", "src", "action", "formaction", "xlink:href"]) {
             const target = attrs[key]?.replace(/[\u0000-\u0020\u007f]/gu, "");

@@ -104,6 +104,91 @@ test('packet commits all fields with shared RFC 8785 and SHA-256 and freezes its
   }
 });
 
+test('source language or unknown survives the original packet writer and strict receiver', () => {
+  // The canonical SHP owner already admits source-authored BCP 47 tags;
+  // generic HTML Structural Projection must not reintroduce RFC 7992 English.
+  const unknown = project(form());
+  assert.match(unknown, /^<!DOCTYPE html>\n<html>\n/u);
+  assert.doesNotMatch(unknown, /<html[^>]*lang=/u);
+  assert.deepEqual(validateShpDocumentBytes(unknown), []);
+  const unknownPacket = pack(form(), { source: 'source:unknown' });
+  assert.equal(verifyPacket(unknownPacket), true);
+  assert.match(unknownPacket.html, /<html>/u);
+  assert.deepEqual(markup(unknownPacket.html), form().cells);
+  for (const language of ['lkt', 'ar', 'fr-CA', 'zh-Hant', 'und', 'en']) {
+    const fromSource = fromCells('object:1', form().cells, { language });
+    const before = structuredClone(fromSource);
+    const html = project(fromSource);
+    assert.match(html, new RegExp('<html lang="' + language + '">', 'u'));
+    assert.deepEqual(validateShpDocumentBytes(html), [], 'safe source-declared ' + language);
+    const packet = pack(fromSource, { source: 'source:real:' + language });
+    assert.equal(verifyPacket(packet), true);
+    assert.deepEqual(markup(packet.html), fromSource.cells);
+    assert.deepEqual(fromSource, before, 'projection may not alter original language testimony');
+    assert.equal(packet.html.includes('lang="' + language + '"'), true);
+  }
+  assert.notEqual(pack(form(), {source:'source:1'}).identity,
+    pack(form(), {source:'source:1', language:'lkt'}).identity,
+    'original language choice changes immutable packet bytes and committed identity');
+});
+
+test('source language refuses conflict, noncanonical tags, forged roots and unsafe HTML', () => {
+  const original = fromCells('object:1', form().cells, {language:'ar'});
+  assert.throws(() => project(original, undefined, {language:'en'}), /conflicts with source-declared language/u);
+  assert.doesNotThrow(() => project(original, undefined, {language:'ar'}));
+  for (const language of ['en-us','AR','fr_CA','en--US','en ','','x-test','en<script','zh-hans']) {
+    assert.throws(() => fromCells('object:1', form().cells, {language}), /canonical BCP 47/u);
+    assert.throws(() => project(form(), undefined, {language}), /canonical BCP 47/u);
+  }
+  const accepted = project(form());
+  assert.deepEqual(validateShpDocumentBytes(accepted), [],
+    'one genuine source-authored HTML root remains valid');
+  // Parse5's corrected DOM must not hide additional explicit source tokens.
+  // The HTML tree builder merges the second root's language into the first
+  // DOM element: count the actual start tags rather than constructed nodes.
+  for (const duplicate of ['<html lang="ar">', '<HTML lang="lkt">']) {
+    const forged = accepted.replace('<body>', '<body>\n' + duplicate);
+    assert.ok(validateShpDocumentBytes(forged).some(({ code }) => code === 'SHP-DOC-003'),
+      'a second explicit HTML root must be refused, not normalized: ' + duplicate);
+  }
+  // The root language must come from the explicit parsed HTML root, not
+  // a comment, nested element or script text.
+  assert.deepEqual(validateShpDocumentBytes(
+    accepted.replace('<head>', '<head><!-- <html lang="en"> --><meta name="fake" lang="fr">')), []);
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('<html>', '<html lang="en-us">')
+  ).some(violation=>violation.code==='SHP-DOC-003'));
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('<html>', '<html lang="">')
+  ).some(violation=>violation.code==='SHP-DOC-003'));
+  assert.ok(validateShpDocumentBytes(
+    accepted.replace('</body>', '<script>alert(1)</script></body>')
+  ).some(violation=>violation.code==='SHP-DOC-005'),
+  'the source-language repair must not relax SHP inspection safety');
+  const historical = accepted.replace('<html>', '<html lang="en">');
+  assert.deepEqual(validateShpDocumentBytes(historical), [],
+    'previous generic SHP packets with explicit English remain readable');
+});
+
+test('SHP inspection demands real parser attributes, not comment-forged packet evidence', () => {
+  const valid = project(form());
+  assert.deepEqual(validateShpDocumentBytes(valid), [], 'the original good packet is still accepted');
+  const invalid = [
+    ['SHP-DOC-004', valid.replace(/<meta\b[^>]*\bcharset="utf-8"[^>]*>/iu, '')
+      .replace('<head>', '<head><!-- <meta charset="utf-8"> -->')],
+    ['SHP-DOC-007', valid.replace(/\sclass="[^"]*"/gu, '')
+      .replace('<body>', '<body><!-- <section class="falsely-structural"> -->')],
+    ['SHP-DOC-008', valid.replace(/\sdata-[a-z0-9][a-z0-9-]*="[^"]*"/gu, '')
+      .replace('<body>', '<body><!-- <section data-source="falsely-carried"> -->')],
+  ];
+  for (const [code, html] of invalid)
+    assert.ok(validateShpDocumentBytes(html).some(violation => violation.code === code),
+      'comment cannot substitute for the required authored attribute: ' + code);
+  assert.deepEqual(validateShpDocumentBytes(valid.replace('<head>',
+    '<head><!-- <meta charset="utf-8"><section class="fake" data-source="fake"> -->')), [],
+    'irrelevant comment tokens cannot alter a valid packet');
+});
+
 test('a receiving document renderer wraps the exact article and remains within inspection safety', () => {
   const packet = pack(form(), {
     source: 'source:1',
@@ -166,4 +251,171 @@ test('HTML NUL display normalization retains original typed coordinates and evid
   assert.equal(verifyPacket(packet), true);
   assert.deepEqual(markup(renderPacket(packet)), cells);
   assert.doesNotMatch(packet.html, /\u0000/u);
+});
+
+test('SHP inspection refuses authored network resources regardless of HTML attribute quoting', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const networkElements = [
+    '<img src="https://external.example.invalid/image.png">',
+    "<img src='https://external.example.invalid/image.png'>",
+    '<img src=https://external.example.invalid/image.png>',
+    '<img src="//external.example.invalid/image.png">',
+    "<link rel=stylesheet href='http://external.example.invalid/theme.css'>",
+    '<img src="https&#58;//external.example.invalid/image.png">',
+    "<script src='https://external.example.invalid/run.js'></script>",
+  ];
+  for (const element of networkElements) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.notEqual(document, safe, 'positive fixture must include a body insertion point');
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'real source attributes must refuse external network dependency: ' + element);
+  }
+  const comment = safe.replace('<body>',
+    '<body><!-- <img src="https://external.example.invalid/forged.png"><script src="https://external.example.invalid/forged.js"></script> -->');
+  assert.deepEqual(validateShpDocumentBytes(comment), [],
+    'literal text in an inert comment must not be treated as authored network or script elements');
+  const activeScript = safe.replace('<body>', '<body><script>void 0</script>');
+  assert.ok(validateShpDocumentBytes(activeScript).some(({ code }) => code === 'SHP-DOC-005'),
+    'an authored script token must remain refused');
+});
+
+
+test('SHP inspection refuses alternate authority slashes recognized by URL parsing', () => {
+  const safe = project(form());
+  const base = 'https://local.example.invalid/';
+  for (const prefix of ['//', '/\\', '\\/', '\\\\']) {
+    const target = prefix + 'external.example.invalid/image.png';
+    assert.equal(new URL(target, base).hostname, 'external.example.invalid');
+    for (const element of [
+      `<img src="${target}">`,
+      `<video poster="${target}"></video>`,
+      `<link rel="stylesheet" href="${target}">`,
+    ]) {
+      const html = safe.replace('<body>', '<body>' + element);
+      assert.ok(validateShpDocumentBytes(html).some(v => v.code === 'SHP-DOC-006'),
+        'URL parser authority must not bypass resource refusal: ' + element);
+    }
+  }
+  for (const target of ['/local.png', 'relative.png']) {
+    assert.equal(new URL(target, base).hostname, 'local.example.invalid');
+    assert.deepEqual(validateShpDocumentBytes(safe.replace('<body>',
+      `<body><img src="${target}">`)), [], 'existing local-resource policy remains unchanged');
+  }
+});
+
+test('SHP inspection refuses authored responsive image-source candidates, including after a local fallback', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), [], 'existing packet remains accepted');
+  const responsiveResources = [
+    '<img srcset="https://external.example.invalid/a.png 1x">',
+    '<img src="/local.png" srcset="/local.png 1x, https://external.example.invalid/b.png 2x">',
+    '<picture><source srcset="//external.example.invalid/c.webp 1x"><img src="/local.png"></picture>',
+    '<img srcset="https&#58;//external.example.invalid/a.png 1x">',
+    '<link rel="preload" as="image" imagesrcset="https://external.example.invalid/d.png 2x">',
+    '<source src=https://external.example.invalid/f.png>',
+    // Fail closed even for local-only responsive candidates until a browser-equivalent
+    // candidate parser can distinguish and admit them.
+    '<img srcset="/local.png 1x">',
+  ];
+  for (const element of responsiveResources) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'responsive network-source admission must refuse: ' + element);
+  }
+  const inert = safe.replace('<body>',
+    '<body><!-- <img srcset="https://external.example.invalid/forged.png 1x"> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'a commented srcset is inert, not an authored resource candidate');
+});
+
+test('SHP inspection refuses external media and SVG resource attributes while retaining passive links', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  // All of these authored URL attributes may cause a browser to fetch a
+  // remote resource, independently of img/srcset and link/stylesheet rules.
+  const remote = [
+    '<video controls poster="https://external.example.invalid/poster.png"></video>',
+    '<video autoplay muted src="https://external.example.invalid/video.mp4"></video>',
+    '<audio preload="auto" src="https://external.example.invalid/clip.mp3"></audio>',
+    '<track src="https://external.example.invalid/subtitles.vtt">',
+    '<input type="image" src="https://external.example.invalid/button.png">',
+    '<svg><image href="https://external.example.invalid/shape.svg"/></svg>',
+    '<svg><use xlink:href="https://external.example.invalid/icon.svg#shape"/></svg>',
+    '<table background="https://external.example.invalid/background.png"><tr><td>body</td></tr></table>',
+    '<video poster="https&#58;//external.example.invalid/encoded.png"></video>',
+  ];
+  for (const element of remote) {
+    const document = safe.replace('<body>', '<body>' + element);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'an authored external media or SVG resource must be refused: ' + element);
+  }
+  // A clickable external link does not require a network fetch for inspection.
+  // This repair must not turn the packet into a no-links document.
+  const passive = safe.replace('<body>',
+    '<body><a href="https://external.example.invalid/ordinary-reference">external citation</a>');
+  assert.deepEqual(validateShpDocumentBytes(passive), [],
+    'a passive authored navigation link remains readable');
+  const inert = safe.replace('<body>',
+    '<body><!-- <video poster="https://external.example.invalid/inert.png"></video> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'an HTML comment is not an authored resource element');
+});
+
+test('SHP inspection refuses CSS resource loaders without treating comments as active style', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const hosted = [
+    '<style>@import "https://external.example.invalid/theme.css";</style>',
+    '<style>@im\\70ort "https://external.example.invalid/theme.css";</style>',
+    '<style>div{background:url(https://external.example.invalid/a.png)}</style>',
+    '<style>div{background:u\\72l(https://external.example.invalid/a.png)}</style>',
+    '<style>div{background:image-set("https://external.example.invalid/a.png" 1x)}</style>',
+    '<div style="background-image:url(https://external.example.invalid/a.png)">remote</div>',
+    '<div style="background-image:u\\72l(https://external.example.invalid/a.png)">escaped</div>',
+    '<style>div{background:url(/local-only.png)}</style>',
+    // CSS quoted comment delimiters are strings, not CSS comments;
+    // a naive comment-stripping regex must not erase a real loader between them.
+    '<style>p::before{content:"/*"} p{background:url(https://external.example.invalid/quoted-comment.png)} p::after{content:"*/"}</style>',
+    '<div style="--front:&quot;/*&quot;;background:url(https://external.example.invalid/inline-quoted-comment.png);--tail:&quot;*/&quot;">test</div>',
+  ];
+  for (const fragment of hosted) {
+    const document = safe.replace('<body>', '<body>' + fragment);
+    assert.ok(validateShpDocumentBytes(document).some(({ code }) => code === 'SHP-DOC-006'),
+      'authored CSS resource loader must be refused: ' + fragment);
+  }
+  const ordinary = safe.replace('<body>',
+    '<body><style>body{color:black} .quiet{opacity:.8}</style><div style="color:blue">safe</div>');
+  assert.deepEqual(validateShpDocumentBytes(ordinary), [],
+    'ordinary non-fetching CSS remains allowed');
+  const quotedCommentText = safe.replace('<body>',
+    '<body><style>p::before{content:"/*"} p{color:blue} p::after{content:"*/"}</style>');
+  assert.deepEqual(validateShpDocumentBytes(quotedCommentText), [],
+    'CSS strings containing comment-like delimiters without loaders are allowed');
+  const inert = safe.replace('<body>',
+    '<body><!-- <style>@import "https://external.example.invalid/css"</style> -->');
+  assert.deepEqual(validateShpDocumentBytes(inert), [],
+    'HTML comments containing fake style must not trigger a resource refusal');
+});
+
+
+test('SHP inspection checks authored template content for unsafe attributes', () => {
+  const safe = project(form());
+  assert.deepEqual(validateShpDocumentBytes(safe), []);
+  const refused = [
+    ['SHP-DOC-010', '<template><span onfocus="noop()">focus</span></template>'],
+    ['SHP-DOC-011', '<template><iframe src="/local"></iframe></template>'],
+    ['SHP-DOC-012', '<template><a href="java&#x73;cript:noop()">text</a></template>'],
+    ['SHP-DOC-011', '<template><meta http-equiv=" Refresh " content="0;url=/local"></template>'],
+  ];
+  for (const [code, fragment] of refused) {
+    const html = safe.replace('<body>', '<body>' + fragment);
+    assert.ok(validateShpDocumentBytes(html).some(v => v.code === code),
+      'source-authored template content must not bypass document safety: ' + code);
+  }
+  assert.deepEqual(validateShpDocumentBytes(safe.replace('<body>',
+    '<body><!-- <template><iframe src="/local"></iframe></template> -->')), [],
+    'HTML comments are inert, not start tags');
+  assert.deepEqual(validateShpDocumentBytes(pack(form(), { source: 's', syntax: 'void 0;' }).html), [],
+    'the data-bearing syntax template remains accepted');
 });
