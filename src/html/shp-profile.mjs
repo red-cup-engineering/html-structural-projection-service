@@ -186,7 +186,9 @@ export function validateShpDocumentBytes(value) {
     // Parse attribute values (including single quotes, unquoted URLs and
     // HTML entities), not raw substrings that comments can forge.
     const isNetworkUrl = url => typeof url === "string" &&
-        /^(?:https?:|\/\/)/iu.test(url.replace(/[\u0000-\u0020\u007f]/gu, ""));
+        // Special-scheme URL parsing treats backslashes as slashes. Mixed
+        // slash pairs can therefore select another host just like //host.
+        /^(?:https?:|[\\/]{2})/iu.test(url.replace(/[\u0000-\u0020\u007f]/gu, ""));
     // Network-bearing attributes exist beyond img/src and link/href:
     // media src/poster, track, input-image, legacy backgrounds and SVG
     // image/use references can all fetch resources during inspection.

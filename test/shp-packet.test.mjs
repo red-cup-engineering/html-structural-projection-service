@@ -281,6 +281,29 @@ test('SHP inspection refuses authored network resources regardless of HTML attri
 });
 
 
+test('SHP inspection refuses alternate authority slashes recognized by URL parsing', () => {
+  const safe = project(form());
+  const base = 'https://local.example.invalid/';
+  for (const prefix of ['//', '/\\', '\\/', '\\\\']) {
+    const target = prefix + 'external.example.invalid/image.png';
+    assert.equal(new URL(target, base).hostname, 'external.example.invalid');
+    for (const element of [
+      `<img src="${target}">`,
+      `<video poster="${target}"></video>`,
+      `<link rel="stylesheet" href="${target}">`,
+    ]) {
+      const html = safe.replace('<body>', '<body>' + element);
+      assert.ok(validateShpDocumentBytes(html).some(v => v.code === 'SHP-DOC-006'),
+        'URL parser authority must not bypass resource refusal: ' + element);
+    }
+  }
+  for (const target of ['/local.png', 'relative.png']) {
+    assert.equal(new URL(target, base).hostname, 'local.example.invalid');
+    assert.deepEqual(validateShpDocumentBytes(safe.replace('<body>',
+      `<body><img src="${target}">`)), [], 'existing local-resource policy remains unchanged');
+  }
+});
+
 test('SHP inspection refuses authored responsive image-source candidates, including after a local fallback', () => {
   const safe = project(form());
   assert.deepEqual(validateShpDocumentBytes(safe), [], 'existing packet remains accepted');
