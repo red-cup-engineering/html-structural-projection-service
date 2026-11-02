@@ -1,8 +1,9 @@
 name: HTML Structural Projection · native receiving
 
-# This public original source owns its tests, not a separate CI apparatus.
-# The complete source check delegates to the Group's single CD engine at an
-# exact commit; public ubuntu-24.04 uses no private Actions runner quota.
+# Public source qualification uses public runner capacity and public actions.
+# A public caller cannot resolve the private shared reusable workflow. Keep the
+# same pinned toolchain, frozen graph, disabled lifecycle scripts and native
+# checks here without copying the private supplier or expanding its access.
 on:
   pull_request:
     paths:
@@ -21,17 +22,22 @@ permissions:
 
 jobs:
   native:
-    uses: red-cup-engineering/continuous-delivery-engineering-services-section/.github/workflows/node-package.yml@ce71dcc89b647bbd38ede5690f81b5151cb6614b
-    with:
-      runs-on: '["ubuntu-24.04"]'
-      node-version: "24.11.1"
-      package-manager: pnpm
-      pnpm-version: "10.19.0"
-      supplier-ref: "ce71dcc89b647bbd38ede5690f81b5151cb6614b"
-      source-commit: ${{ github.event.pull_request.head.sha || github.sha }}
-      paths: '["."]'
-      concurrency: 1
-      timeout-minutes: 25
-      install: true
-      check: true
-      test-script: test
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Read the exact source revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Select the original Node toolchain
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24.11.1"
+      - name: Install the original frozen dependency graph without lifecycle scripts
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check native source
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- pnpm run check
+      - name: Test native source and real parser behavior
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- pnpm test
