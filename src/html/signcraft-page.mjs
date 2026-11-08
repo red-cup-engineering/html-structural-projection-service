@@ -5,7 +5,7 @@
  * page itself (a Chu space of cells under vantages) stays in SignCraft.
  */
 import { AUDIT, PUBLIC, VALUE_MARK, pageOfCells, selectForContext } from "@red-cup-engineering/signcraft/page";
-import { evidenceOf, knowledgeReading, semanticId, triple } from "@red-cup-engineering/signcraft/cell";
+import { evidenceOf, knowledgeReading, semanticId, triple } from "@red-cup-engineering/signcell/cell";
 import { isConsistentReading, knowledgeBottom, samePoint } from "@red-cup-engineering/metrologic/four";
 import { escapeAttr, escapeText, slug, fromCells as shpFromCells, pack as shpPack } from "./index.mjs";
 

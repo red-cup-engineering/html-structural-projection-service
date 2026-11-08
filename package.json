@@ -1,6 +1,6 @@
 {
   "name": "@red-cup-engineering/html-structural-projection-service",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/red-cup-engineering/html-structural-projection-service.git"
@@ -34,12 +34,12 @@
     "@red-cup-engineering/computer-text-content-engineering-services-section": "0.1.0",
     "@red-cup-engineering/cryptographic-computer-data-engineering-services-section": "0.3.1",
     "@red-cup-engineering/xml-document-rendering-service": "0.2.0",
-    "@red-cup-engineering/signcell": "0.2.0",
+    "@red-cup-engineering/signcell": "0.17.1",
     "@red-cup-engineering/json-services-section": "0.4.0",
     "@red-cup-engineering/css-services-section": "0.1.3",
     "@red-cup-engineering/html-engineering-services-section": "0.1.3",
     "@red-cup-engineering/metrologic": "0.21.0",
-    "@red-cup-engineering/signcraft": "0.8.2-dev.0"
+    "@red-cup-engineering/signcraft": "0.9.1"
   },
   "license": "MIT",
   "funding": {
