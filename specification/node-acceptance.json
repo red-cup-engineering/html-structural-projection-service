@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "basis": "WHATWG HTML tree construction, native parse5 source positions, and SignCell byte evidence.",
+  "cases": [
+    {
+      "id": "HTML-TREE-FIXTURES",
+      "role": "source",
+      "kind": "invariant",
+      "claim": "Document conversion retains the expected native tree construction for the pinned HTML5lib examples.",
+      "file": "test/html-transformations.test.mjs",
+      "test": "selected standalone HTML5lib trees retain their independent expected shape"
+    },
+    {
+      "id": "HTML-SOURCE-REPLAY",
+      "role": "consumer",
+      "kind": "example",
+      "claim": "The installed codec retains parser recovery and locates nodes in the original UTF-8 source.",
+      "file": "examples/read-document.test.mjs",
+      "test": "the installed HTML codec retains native tree recovery and positions in its exact source"
+    }
+  ]
+}

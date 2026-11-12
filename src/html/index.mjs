@@ -566,16 +566,8 @@ export const rfc7992Profile = Object.freeze({
     classes: RFC7992_CLASSES,
     lint,
 });
-/* ── carrier / document-render engine + CSS style resolution (re-exported) ─
- * Moved out to @red-cup-engineering/css-services-section (the CSS
- * cascade closure and certification) and
- * @red-cup-engineering/html-document-render-service (the carrier +
- * document-render engine, which depends on css-services-section by
- * package name), each re-exported here unchanged so this package's export
- * surface stays identical. The SHP codec, lint, and escaping below stay here.
- */
 export { resolveNodeStyles, checkStyleResolutionSettled, checkClassMapsValid, cssTextFromResolvedStyles, } from "@red-cup-engineering/css-services-section/css-style-resolution";
-export { htmlCarrierOf, buildHtmlDocumentPlan, renderHtmlDocument, } from "@red-cup-engineering/html-engineering-services-section/html-document-render";
+export { htmlCarrierOf, buildHtmlDocumentPlan, renderHtmlDocument } from "./document-render.mjs";
 /** The html codec as a holography projector over cells paired with their told evidence. */
 /** The HTML codec as a holography projector over charged cells. */
 export const htmlProjector = defineResourceProjector({
