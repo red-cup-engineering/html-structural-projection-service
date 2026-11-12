@@ -22,7 +22,7 @@ import { slugify as slugifyText } from "@red-cup-engineering/computer-text-conte
 import { decodeHtmlEntities, scanHtmlStartTags } from "./scan.mjs";
 import { htmlDisplayText, escapeHtmlTextValue, escapeHtmlAttributeValue } from "./lexical.mjs";
 import { validateShpDocumentBytes, canonicalShpLanguage } from "./shp-profile.mjs";
-import { readingOfSides } from "@red-cup-engineering/computer-data-engineering-services-section/four";
+import { readingOfSides } from "@red-cup-engineering/metrologic/four";
 export * from "./string-rendering.mjs";
 export * from "./scan.mjs";
 /** The wire prefix distinguishing an entity reference from a literal string. */

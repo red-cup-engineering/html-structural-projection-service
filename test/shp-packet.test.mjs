@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
-import { sidesOfReading } from "@red-cup-engineering/computer-data-engineering-services-section/four";
+import { sidesOfReading } from "@red-cup-engineering/metrologic/four";
 import { evidence } from "@red-cup-engineering/signcell/cell";
 import { canonical } from '@red-cup-engineering/json-services-section';
 import { address, cellKey, fromCells, fromSection, markup, morphismRegistry, pack, project, ref, renderPacket, verifyPacket } from '../src/html/index.mjs';

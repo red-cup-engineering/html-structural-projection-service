@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { evidence, told } from "@red-cup-engineering/signcell/cell";
-import { readingOfSides } from "@red-cup-engineering/computer-data-engineering-services-section/four";
+import { readingOfSides } from "@red-cup-engineering/metrologic/four";
 import { fromSection, markup, project, unmark } from "../src/html/index.mjs";
 
 const fixtureSection = () => ({
