@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@red-cup-engineering/signcell@0.17.5': link:../../../../../../../../../computer-code-engineering-services-section/lib/signcell
-  '@red-cup-engineering/xml-document-rendering-service@0.3.1': link:../../../xml-services-section/services/xml-document-rendering-service
+  '@red-cup-engineering/xml-document-rendering-service@0.3.1': link:../../../xml-engineering-services-section/services/xml-document-rendering-service
 
 importers:
 
@@ -40,8 +40,8 @@ importers:
         specifier: 0.9.1
         version: 0.9.1
       '@red-cup-engineering/xml-document-rendering-service':
-        specifier: link:../../../xml-services-section/services/xml-document-rendering-service
-        version: link:../../../xml-services-section/services/xml-document-rendering-service
+        specifier: link:../../../xml-engineering-services-section/services/xml-document-rendering-service
+        version: link:../../../xml-engineering-services-section/services/xml-document-rendering-service
       entities:
         specifier: 8.1.0
         version: 8.1.0

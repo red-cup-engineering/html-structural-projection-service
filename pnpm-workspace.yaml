@@ -1,3 +1,3 @@
 overrides:
   '@red-cup-engineering/signcell@0.17.5': 'link:../../../../../../../../../computer-code-engineering-services-section/lib/signcell'
-  '@red-cup-engineering/xml-document-rendering-service@0.3.1': 'link:../../../xml-services-section/services/xml-document-rendering-service'
+  '@red-cup-engineering/xml-document-rendering-service@0.3.1': 'link:../../../xml-engineering-services-section/services/xml-document-rendering-service'
