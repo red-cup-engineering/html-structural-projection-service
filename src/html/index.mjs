@@ -16,7 +16,7 @@
 import { define as defineResourceProjector } from "@red-cup-engineering/computer-content-engineering-services-section/typed-resource-classification";
 import { evidence as toldEvidence, sidesOf } from "@red-cup-engineering/signcell/cell";
 import { calmReadingOf, readingMark, readingOf } from "@red-cup-engineering/xml-document-rendering-service/svg";
-import { canonical, parse } from "@red-cup-engineering/json-services-section";
+import { canonical, parse } from "@red-cup-engineering/json-engineering-services-section";
 import { sha256Bytes } from "@red-cup-engineering/cryptographic-computer-data-engineering-services-section/portable-sha256";
 import { slugify as slugifyText } from "@red-cup-engineering/computer-text-content-engineering-services-section/slugify-text";
 import { decodeHtmlEntities, scanHtmlStartTags } from "./scan.mjs";
@@ -566,7 +566,7 @@ export const rfc7992Profile = Object.freeze({
     classes: RFC7992_CLASSES,
     lint,
 });
-export { resolveNodeStyles, checkStyleResolutionSettled, checkClassMapsValid, cssTextFromResolvedStyles, } from "@red-cup-engineering/css-services-section/css-style-resolution";
+export { resolveNodeStyles, checkStyleResolutionSettled, checkClassMapsValid, cssTextFromResolvedStyles, } from "@red-cup-engineering/css-engineering-services-section/css-style-resolution";
 export { htmlCarrierOf, buildHtmlDocumentPlan, renderHtmlDocument } from "./document-render.mjs";
 /** The html codec as a holography projector over cells paired with their told evidence. */
 /** The HTML codec as a holography projector over charged cells. */

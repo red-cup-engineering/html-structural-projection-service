@@ -15,8 +15,8 @@ import {
   cssTextFromResolvedStyles,
   firstDuplicate,
   nodeIdSet,
-} from "@red-cup-engineering/css-services-section/css-style-resolution";
-import { canonical, parse } from "@red-cup-engineering/json-services-section";
+} from "@red-cup-engineering/css-engineering-services-section/css-style-resolution";
+import { canonical, parse } from "@red-cup-engineering/json-engineering-services-section";
 import { admitDocumentSpine } from "@red-cup-engineering/signcell/document-spine";
 import { retainedCarrier } from "@red-cup-engineering/signcell/content-address";
 import { readHtmlDocument } from "./scan.mjs";
