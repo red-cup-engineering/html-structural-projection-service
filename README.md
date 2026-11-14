@@ -38,3 +38,20 @@ The root export retains the existing SHP cell/evidence projection, packet commit
 All operations require well-formed Unicode inputs up to65536 UTF-8 bytes. Document operations cap8192 parsed nodes/attributes and depth64, including implied nodes and template fragments. Results cap1048576 JSON UTF-8 bytes; seller requests separately cap1048576 bytes. Parsing uses scripting-enabled tree rules while never executing scripts. Parsing errors and unresolved URLs are truthful paid information; unsupported request fields and resource/representation limits refuse before payment.
 
 The qualified fixtures retain2231 primary WHATWG named references and50 selected standalone HTML5lib document trees at the supplier's pinned test revision, with source attribution/license. The historical tree subset is not full current HTML conformance. Existing actual SHP/HTML and Webmention authoring consumers were exercised; this does not establish every hosted consumer or a standalone registry release.
+
+## Native prerequisite receiving
+
+Native HTML parsing and source projection use parse5 and entities. The source
+codec retains exact UTF-8 source custody and native tree recovery, including a
+separate doctype node and the HTML element. Consumers must discriminate `kind`
+as well as `name`: both the doctype and root element can have the name `html`.
+
+The package ships its original structural, settled-carrier, safe-profile and
+source-reader consumer suites as declared receiving tests. Runtime parsing,
+rendering and mathematical suppliers are unchanged in this development cohort.
+The native PNPM lock selects the current declared supplier identities instead
+of workspace links; no local-file dependency or replacement parser is used.
+
+This is a prerequisite preview. Authentic local archive qualification is not
+registry issuance or live activation. Held upstream approvals and issuance
+checks remain independent requirements before activation of downstream systems.

@@ -9,6 +9,9 @@ on:
     paths:
       - "src/**"
       - "test/**"
+      - "examples/**"
+      - "specification/**"
+      - "pnpm-workspace.yaml"
       - "package.json"
       - "pnpm-lock.yaml"
       - ".npmrc"
@@ -34,12 +37,15 @@ jobs:
       - name: Select the original Node toolchain
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: "24.11.1"
+          node-version: "24.22.1"
       # npm selects the pnpm tool from npmjs; its registry override must not
       # leak into pnpm, which reads this source repository's .npmrc.
       - name: Install the original frozen dependency graph without lifecycle scripts
-        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm install --frozen-lockfile --ignore-scripts
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@11.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm install --frozen-lockfile --ignore-scripts
       - name: Check native source
-        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm run check
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@11.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm run check
       - name: Test native source and real parser behavior
-        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@10.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm test
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@11.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm test
+
+      - name: Receive installed public source codec
+        run: npm exec --yes --registry=https://registry.npmjs.org --package=pnpm@11.19.0 -- env -u npm_config_registry -u NPM_CONFIG_REGISTRY pnpm run test:consumer

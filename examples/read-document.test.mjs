@@ -12,8 +12,9 @@ test("the installed HTML codec retains native tree recovery and positions in its
   assert.deepEqual(reading.value, htmlToJsonTree({ html }));
   const { document } = reading.value;
   assert.equal(document.mode, "no-quirks");
+  assert.equal(document.children[0].kind, "doctype");
   assert.deepEqual(document.children[0].source, { start: 1, end: html.indexOf("<title>") });
-  const body = document.children.find(node => node.name === "html").children.find(node => node.name === "body");
+  const body = document.children.find(node => node.kind === "element" && node.name === "html").children.find(node => node.name === "body");
   const table = body.children.find(node => node.name === "table");
   assert.equal(table.children[0].name, "tbody");
   assert.equal(table.children[0].source, null);
